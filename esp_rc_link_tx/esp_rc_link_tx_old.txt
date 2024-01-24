@@ -1,0 +1,281 @@
+#include <ESP8266WiFi.h>
+// hex display
+#include <stdint.h>
+
+#define BAUD_RATE_READ 100000
+// #define BAUD_RATE_WRITE 115200
+#define BAUD_RATE_WRITE 115200
+
+uint8_t buffer[25];
+int bufferIndex = 0;
+
+uint8_t code[11];
+
+// parser
+enum State {
+  IDLE = 0,
+  HEADER,
+  HEADER2,
+  HEADER3,
+};
+
+bool runonce = true;
+uint16_t values[16];
+uint8_t state = IDLE;
+uint8_t b = 0;
+uint32_t found_sequence = 0;
+int indexx = 0;
+
+// stats
+unsigned long last_report = 0;
+uint32_t count_suc = 0;
+uint32_t count_fai = 0;
+uint32_t uneque_packet_count = 0;
+uint16_t old_value = 0;
+uint32_t SUCCES = 0;
+uint32_t FAILS = 0;
+
+// mapped
+int mappedValue;
+
+void switch_to_TX(){
+  Serial.end();
+  Serial.begin(BAUD_RATE_WRITE);
+}
+void switch_to_RX(){
+  Serial.end();
+  Serial.begin(BAUD_RATE_READ, SERIAL_8E2);
+}
+
+void clearRXBuffer(){
+  int x;
+  while (x = Serial.available() > 0)
+  {
+     while (x--) Serial.read();
+  }
+}
+
+void extractValues(const uint8_t* buffer, uint16_t* outValues, int numValues = 16) {
+  int bitIndex = 0; // Index to track the current bit position in the buffer
+
+  for (int i = 0; i < numValues; ++i) {
+      // Extract 11 bits for each value
+      uint16_t value = 0;
+      for (int bit = 0; bit < 11; ++bit) {
+          // Calculate the index of the byte and the bit within that byte
+          int byteIndex = (bitIndex + bit) / 8;
+          int bitInByte = (bitIndex + bit) % 8;
+
+          // Extract the bit and add it to value
+          if (buffer[byteIndex] & (1 << bitInByte)) {
+              value |= (1 << bit);
+          }
+      }
+
+      // Store the extracted value
+      outValues[i] = value;
+
+      // Move to the next 11-bit block
+      bitIndex += 11;
+  }
+}
+
+void serial_report(){
+  switch_to_TX();
+  if(buffer[22]==0x00){
+    
+    extractValues(buffer, values, 16);
+    for (int i = 0; i < 16; ++i) {
+      Serial.print(values[i]);
+      Serial.print("\t");
+    }              
+    Serial.println();
+    // printBufferAsHex(buffer, 23);
+  }
+  else{
+    // Serial.print("corrupted packet avilable bytes:");
+    memset(buffer, 0, sizeof(buffer));
+    // Serial.println(Serial.available());
+    clearRXBuffer();
+  }
+
+  // Serial.print("Found 0x00 0x00: ");
+  // Serial.print(found_sequence);
+  // Serial.println(" times");
+
+  Serial.flush();
+  // clearRXBuffer();
+  switch_to_RX();
+}
+
+// hex display
+void displayHexValues(uint8_t code[]) {
+  for (int i = 0; i < 11; i++) {
+    Serial.print(code[i]);
+    Serial.print("\t");
+  }
+  Serial.println();
+}
+
+void serial_report_mapped_assembled(){
+  if(buffer[22]==0x00){
+    extractValues(buffer, values, 16);
+    if(map(values[1], 173, 1810, 0, 255)<=11)
+    code[map(values[1], 173, 1810, 0, 255)] = map(values[0], 173, 1810, 0, 255);
+
+
+    switch_to_TX();
+    Serial.print("SUCCES: ");
+    Serial.println(SUCCES);
+    Serial.print("FAILS: ");
+    Serial.println(FAILS);
+    displayHexValues(code);
+    Serial.flush();
+    switch_to_RX();
+    
+    if(map(values[1], 173, 1810, 0, 255)==10){
+
+      if(runonce){
+        runonce = false;
+        // Calculate CRC
+        uint8_t crc = 0;
+        for (int i = 0; i < 10; i++) {
+          crc += code[i];
+        }
+        crc %= 256;
+
+        // Compare CRC and increment SUCCESS or FAILS
+        if (crc == code[10]) {
+          SUCCES++;
+        } else {
+          FAILS++;
+        }
+      }
+
+      memset(code, 0, sizeof(code)); // Reset code array
+    }
+    else{      
+        runonce = true;
+    }
+  }
+}
+
+void serial_report_mapped(){
+  if(buffer[22]==0x00){
+    extractValues(buffer, values, 16);
+    mappedValue = map(values[0], 173, 1810, 0, 255);
+    switch_to_TX();
+
+    Serial.println(mappedValue);
+
+    Serial.flush();
+    switch_to_RX();
+  }
+}
+
+void serial_count_values(){
+  if(buffer[22]==0x00){
+    
+    extractValues(buffer, values, 16);
+    if(values[0]!=old_value){
+      switch_to_TX();
+      uneque_packet_count++;
+      Serial.print(uneque_packet_count);
+      Serial.print(", ");
+      Serial.println(values[0]);
+      old_value = values[0];
+      Serial.flush();
+      switch_to_RX();
+    }
+  }
+}
+
+void serial_report_periodically(){  
+  if(buffer[22]==0x00){
+    count_suc++;
+  }else{
+    count_fai++;
+  }
+
+  if(millis()-last_report > 1000){
+    last_report=millis();
+    int readable_bytes = Serial.available();
+    switch_to_TX();    
+
+    Serial.println();
+
+    Serial.print("Succes: ");
+    Serial.print(count_suc);
+    Serial.print(" Fails: ");
+    Serial.print(count_fai);
+    Serial.print("           ");
+    Serial.println(readable_bytes);
+    Serial.println();
+    Serial.flush();
+    switch_to_RX();
+    count_suc=0;
+    count_fai=0;
+  }
+}
+
+void printBufferAsHex(uint8_t* buffer, size_t bufferSize) {
+    for (size_t i = 0; i < bufferSize; i++) {
+        // Print each byte in hex format with 0x prefix and padded with zeros if necessary
+        if (buffer[i] < 0x10) {
+            Serial.print("0x0");
+        } else {
+            Serial.print("0x");
+        }
+        Serial.print(buffer[i], HEX);
+
+        Serial.print(" ");
+    }
+    Serial.println();
+}
+
+void setup() {
+  Serial.begin(BAUD_RATE_READ,SERIAL_8E2);
+  Serial.setTimeout(5000);
+  Serial.println("Ready to receive data...");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    switch(state){
+      case IDLE:
+        while(Serial.available()>0){
+          yield();
+          b = Serial.read();
+          if(b==0x00){
+            state=HEADER2;
+          }
+          else{
+            state=IDLE;
+          }
+        }
+        break;
+      case HEADER2:
+        if(Serial.available()>0){
+          b = Serial.read();
+          if(b==0x0F){
+            memset(buffer, 0, sizeof(buffer));
+            Serial.readBytes(buffer, 23);
+            state=IDLE;
+            found_sequence++;
+            
+            // serial_count_values();
+            // serial_report_periodically();
+            // serial_report();
+            // serial_report_mapped();
+            serial_report_mapped_assembled();
+
+          }else if(b==0x00){
+            break;
+          }else{
+            state=IDLE;
+          }
+        }
+        break;
+    }
+  }
+}
