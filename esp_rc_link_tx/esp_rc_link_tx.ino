@@ -1,3 +1,35 @@
+// esp_now
+#include <ESP8266WiFi.h>
+#include <espnow.h>
+// REPLACE WITH RECEIVER MAC Address
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+typedef struct struct_message {
+  byte mode;
+  byte id;
+  byte ch01;
+  byte ch02;
+  byte ch03;
+  byte ch04;
+  byte ch05;
+  byte ch06;
+  byte ch07;
+  byte ch08;
+  byte ch09;
+  byte ch10;
+  byte ch11;
+  byte ch12;
+  byte ch13;
+  byte ch14;
+  byte ch15;
+  byte ch16;
+} struct_message;
+
+struct_message myData;
+
+
+
+
 #include <SoftwareSerial.h>
 
 #define RX_PIN 14  // D5 on NodeMCU
@@ -42,7 +74,7 @@ void extractValues(const uint8_t* buffer, uint16_t* outValues, int numValues = 1
       }
 
       // Store the extracted value
-      outValues[i] = value;
+      outValues[i] = map(value,173,1811,0,255);
 
       // Move to the next 11-bit block
       bitIndex += 11;
@@ -56,7 +88,28 @@ void serial_report(){
     for (int i = 0; i < 16; ++i) {
       Serial.print(values[i]);
       Serial.print("\t");
-    }              
+    }
+    
+    myData.mode = 1;
+    myData.id   = 1;
+    myData.ch01 = values[0];
+    myData.ch02 = values[1];
+    myData.ch03 = values[2];
+    myData.ch04 = values[3];
+    myData.ch05 = values[4];
+    myData.ch06 = values[5];
+    myData.ch07 = values[6];
+    myData.ch08 = values[7];
+    myData.ch09 = values[8];
+    myData.ch10 = values[9];
+    myData.ch11 = values[10];
+    myData.ch12 = values[11];
+    myData.ch13 = values[12];
+    myData.ch14 = values[13];
+    myData.ch15 = values[14];
+    myData.ch16 = values[15];
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+
     Serial.println();
     // printBufferAsHex(buffer, 23);
   }
@@ -111,8 +164,42 @@ void parse_sbus(){
 }
 
 void setup() {
+  myData.mode = 0;
+  myData.id   = 0;
+  myData.ch01 = 0;
+  myData.ch02 = 0;
+  myData.ch03 = 0;
+  myData.ch04 = 0;
+  myData.ch05 = 0;
+  myData.ch06 = 0;
+  myData.ch07 = 0;
+  myData.ch08 = 0;
+  myData.ch09 = 0;
+  myData.ch10 = 0;
+  myData.ch11 = 0;
+  myData.ch12 = 0;
+  myData.ch13 = 0;
+  myData.ch14 = 0;
+  myData.ch15 = 0;
+  myData.ch16 = 0;
+
   Serial.begin(115200);
   
+    // Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
+  // Init ESP-NOW
+  if (esp_now_init() != 0) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
+  
+  // Register peer
+  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+
+
   // Initialize software serial with inversion
   mySerial.begin(SOFTWARE_BAUD, SWSERIAL_8E2, RX_PIN, TX_PIN, true);  // true for inverted signal
 }
