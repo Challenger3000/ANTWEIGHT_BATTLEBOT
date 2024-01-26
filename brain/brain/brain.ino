@@ -7,9 +7,10 @@
 
 
 // servo
-#include <ESP32Servo.h>
-Servo myservo;
-int servoPin = 21;
+#include <Servo.h>
+static const int servoPin = 21;
+Servo servo1;
+
 
 
 
@@ -104,7 +105,9 @@ const int ledPin2 = 26; //b
 
 const int ledChannel = 0;
 const int ledChanne2 = 1;
+const int ledChanne3 = 2;
 const int ledChanne4 = 3;
+const int ledChanne5 = 4;
 
 // const int ledChanne3 = 2;
 
@@ -146,22 +149,15 @@ void setup() {
   id = EEPROM.read(0);
 
 
-  ledcSetup(ledChanne4, freq, resolution);
-  ledcAttachPin(ledPin1, ledChanne4);
+  ledcSetup(1, freq, resolution);
+  ledcAttachPin(ledPin1, 1);
 
-  ledcSetup(ledChanne2, freq, resolution);
-  ledcAttachPin(ledPin2, ledChanne4);
+  ledcSetup(3, freq, resolution);
+  ledcAttachPin(ledPin2, 3);
   
   
 
   
-	ESP32PWM::allocateTimer(0);
-	ESP32PWM::allocateTimer(1);
-	ESP32PWM::allocateTimer(2);
-	ESP32PWM::allocateTimer(3);
-	myservo.setPeriodHertz(50);    // standard 50 hz servo
-	myservo.attach(servoPin, 1000, 2000); // attaches the servo on pin 18 to the servo object
-
 
   delay(500);
 
@@ -210,7 +206,7 @@ void loop() {
       //ledcWrite(ledChanne2, 0);
       
       // //ledcWrite(ledChanne3, 0);
-      myservo.write(0); 
+      // myservo.write(0); 
       Serial.print("NO SIGNAL my ch: ");
       Serial.print(id);
       Serial.print(" received id: ");
@@ -256,7 +252,7 @@ void loop() {
       
       // //ledcWrite(ledChanne3, myData.ch03);
       
-      myservo.write(map(myData.ch03,0,255,0,180));
+      // myservo.write(map(myData.ch03,0,255,0,180));
       Serial.print("SERVO: ");
       Serial.println(map(myData.ch03,0,255,0,180));
     }
