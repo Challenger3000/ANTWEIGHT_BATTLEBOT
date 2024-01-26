@@ -1,10 +1,14 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
-#include <Servo.h>
+
+// servo
+#include <ESP32Servo.h>
+Servo myservo;
+int servoPin = 21;
 
 
-Servo servoMotor;
+
 #define pwm_A 27
 #define INA_1 12
 #define INA_2 14
@@ -16,7 +20,6 @@ Servo servoMotor;
 
 #define button 23
 
-#define SERVO_PIN 21 // ESP32 pin GPIO26 connected to servo motor
 
 uint8_t id = 1;
 
@@ -123,7 +126,6 @@ void setup() {
   pinMode(button, INPUT);
 
   
-  servoMotor.attach(SERVO_PIN);
 
   // if(!digitalRead(button)){
   //   id=2;
@@ -147,14 +149,18 @@ void setup() {
   ledcAttachPin(ledPin1, ledChanne4);
 
   ledcSetup(ledChanne2, freq, resolution);
-  ledcAttachPin(ledPin2, ledChanne2);
+  ledcAttachPin(ledPin2, ledChanne4);
   
-  // ledcSetup(ledChanne3, freq, resolution);
-  // ledcAttachPin(ledPin3, ledChanne3);
   
-  //ledcWrite(ledChannel, 0);
-  //ledcWrite(ledChanne2, 0);
-  // //ledcWrite(ledChanne3, 0);
+
+  
+	ESP32PWM::allocateTimer(0);
+	ESP32PWM::allocateTimer(1);
+	ESP32PWM::allocateTimer(2);
+	ESP32PWM::allocateTimer(3);
+	myservo.setPeriodHertz(50);    // standard 50 hz servo
+	myservo.attach(servoPin, 1000, 2000); // attaches the servo on pin 18 to the servo object
+
 
   delay(500);
 
@@ -204,7 +210,7 @@ void loop() {
       //ledcWrite(ledChanne2, 0);
       
       // //ledcWrite(ledChanne3, 0);
-      servoMotor.write(0);
+      myservo.write(0); 
       Serial.print("NO SIGNAL my ch: ");
       Serial.print(id);
       Serial.print(" received id: ");
@@ -250,7 +256,7 @@ void loop() {
       
       // //ledcWrite(ledChanne3, myData.ch03);
       
-      // servoMotor.write(map(myData.ch03,0,255,0,180));
+      myservo.write(map(myData.ch03,0,255,0,180));
       Serial.print("SERVO: ");
       Serial.println(map(myData.ch03,0,255,0,180));
     }
