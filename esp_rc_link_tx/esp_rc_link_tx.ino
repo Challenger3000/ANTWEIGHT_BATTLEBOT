@@ -33,7 +33,7 @@ struct_message myData;
 #include <SoftwareSerial.h>
 
 #define RX_PIN 14  // D5 on NodeMCU
-#define TX_PIN 12  // D6 on NodeMCU
+#define TX_PIN 12  // D6 on NodeMCU 
 #define SOFTWARE_BAUD 100000
 #define MAX_BYTES 25
 

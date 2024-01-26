@@ -1,8 +1,10 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
+#include <Servo.h>
 
 
+Servo servoMotor;
 #define pwm_A 27
 #define INA_1 12
 #define INA_2 14
@@ -13,6 +15,8 @@
 #define INB_3 0
 
 #define button 23
+
+#define SERVO_PIN 21 // ESP32 pin GPIO26 connected to servo motor
 
 uint8_t id = 1;
 
@@ -46,8 +50,7 @@ unsigned long last_packet=0;
 // Callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
-  last_packet=millis();  
-  Serial.println("WTF");
+  last_packet=millis();
   
 
   // Serial.print(myData.mode);
@@ -85,17 +88,18 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   // Serial.print(myData.ch15);
   // Serial.print("\t");
   // Serial.println(myData.ch16);
-  //myData==69 ? digitalWrite(LED_BUILTIN,HIGH):digitalWrite(LED_BUILTIN,LOW);
 }
 
 
 const int ledPin1 = 27; //a
 const int ledPin2 = 26; //b
-const int ledPin3 = 21; //esc
+// const int ledPin3 = 21; //esc
 
 const int ledChannel = 0;
 const int ledChanne2 = 1;
-const int ledChanne3 = 2;
+const int ledChanne4 = 3;
+
+// const int ledChanne3 = 2;
 
 // setting PWM properties
 const int freq = 5000;
@@ -117,9 +121,13 @@ void setup() {
   pinMode(INB_3, OUTPUT);
   
   pinMode(button, INPUT);
-  if(digitalRead(button)==false){
-    id=2;
-  }
+
+  
+  servoMotor.attach(SERVO_PIN);
+
+  // if(!digitalRead(button)){
+  //   id=2;
+  // }
   // pinMode(pwm_B, OUTPUT);
 
   
@@ -135,20 +143,24 @@ void setup() {
   digitalWrite(22, HIGH);
 
 
-  ledcSetup(ledChannel, freq, resolution);
-  ledcAttachPin(ledPin1, ledChannel);
+  ledcSetup(ledChanne4, freq, resolution);
+  ledcAttachPin(ledPin1, ledChanne4);
 
   ledcSetup(ledChanne2, freq, resolution);
   ledcAttachPin(ledPin2, ledChanne2);
   
-  ledcSetup(ledChanne3, freq, resolution);
-  ledcAttachPin(ledPin3, ledChanne3);
+  // ledcSetup(ledChanne3, freq, resolution);
+  // ledcAttachPin(ledPin3, ledChanne3);
   
-  ledcWrite(ledChannel, 0);
-  ledcWrite(ledChanne2, 0);
-  ledcWrite(ledChanne3, 0);
+  //ledcWrite(ledChannel, 0);
+  //ledcWrite(ledChanne2, 0);
+  // //ledcWrite(ledChanne3, 0);
 
   delay(500);
+
+  if(id==2){
+    digitalWrite(22, LOW);
+  }
 
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != 0) {
@@ -165,39 +177,54 @@ void setup() {
 
 void loop() {
 
-    if(digitalRead(button)==false){
-      digitalWrite(22, LOW);
-    }else{
-      digitalWrite(22, HIGH);
+    if(!digitalRead(button)){
+      id++;
+      if(id>4){
+        id=1;
+      }
+
+      for(uint8_t i=0; i < id; i++){
+        digitalWrite(22, LOW);
+        delay(50);
+        digitalWrite(22, HIGH);
+        delay(50);
+      }
+
+      Serial.print("NEW_ID: ");
+      Serial.println(id);
+      delay(200);
     }
 
-    if(millis()-last_packet>50 && id==myData.id){
+    if( (millis()-last_packet) > 50 || id!=myData.ch16-127){
       digitalWrite(INA_1, LOW);
       digitalWrite(INA_2, LOW);
-      ledcWrite(ledChannel, 0);
+      //ledcWrite(ledChannel, 0);
       digitalWrite(INB_1, LOW);
       digitalWrite(INB_2, LOW);
-      ledcWrite(ledChanne2, 0);
+      //ledcWrite(ledChanne2, 0);
       
-      ledcWrite(ledChanne3, 0);
-
-      Serial.println("NO SIGNAL");
+      // //ledcWrite(ledChanne3, 0);
+      servoMotor.write(0);
+      Serial.print("NO SIGNAL my ch: ");
+      Serial.print(id);
+      Serial.print(" received id: ");
+      Serial.println(myData.ch16-127);
     }else{
         if(myData.ch01>128){
         digitalWrite(INA_1, HIGH);
         digitalWrite(INA_2, LOW);
-        ledcWrite(ledChannel, ((myData.ch01-128)*2)+1);
+        ledcWrite(ledChanne4, ((myData.ch01-128)*2)+1);
         Serial.print("A for ward: ");
         Serial.println(((myData.ch01-128)*2)+1);
       }else if(myData.ch01==128){
         digitalWrite(INA_1, LOW);
         digitalWrite(INA_2, LOW);
-        ledcWrite(ledChannel, 0);
+        ledcWrite(ledChanne4, 0);
         Serial.println("A STOP");
       }else if(myData.ch01<128){
         digitalWrite(INA_1, LOW);
         digitalWrite(INA_2, HIGH);
-        ledcWrite(ledChannel, ((128-myData.ch01)*2)-1);
+        ledcWrite(ledChanne4, ((128-myData.ch01)*2)-1);
         Serial.print("A backward: ");
         Serial.println(((128-myData.ch01)*2)-1);
       }
@@ -221,22 +248,25 @@ void loop() {
         Serial.println(((128-myData.ch02)*2)-1);
       }
       
-      ledcWrite(ledChanne3, myData.ch03);
-      Serial.println();
+      // //ledcWrite(ledChanne3, myData.ch03);
+      
+      // servoMotor.write(map(myData.ch03,0,255,0,180));
+      Serial.print("SERVO: ");
+      Serial.println(map(myData.ch03,0,255,0,180));
     }
     
     
 
-    // ledcWrite(ledChannel, myData.ch01);
-    // ledcWrite(ledChanne2, myData.ch02);
+    // //ledcWrite(ledChannel, myData.ch01);
+    // //ledcWrite(ledChanne2, myData.ch02);
   //   delay(15);
   // }
 
   // decrease the LED brightness
   // for(int dutyCycle = 255; dutyCycle >= 0; dutyCycle--){
   //   // changing the LED brightness with PWM
-  //   ledcWrite(ledChannel, dutyCycle);   
-  //   ledcWrite(ledChanne2, dutyCycle);   
+  //   //ledcWrite(ledChannel, dutyCycle);   
+  //   //ledcWrite(ledChanne2, dutyCycle);   
   //   delay(15);
   // }
 
