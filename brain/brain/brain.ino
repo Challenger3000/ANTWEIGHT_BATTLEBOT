@@ -1,6 +1,10 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
+// eeprom
+#include <EEPROM.h>
+#define EEPROM_SIZE 10
+
 
 // servo
 #include <ESP32Servo.h>
@@ -110,6 +114,9 @@ const int resolution = 8;
 // the number of the LED pin
 
 void setup() {
+  
+  EEPROM.begin(EEPROM_SIZE);
+
 
   Serial.begin(115200);
   pinMode(22, OUTPUT);
@@ -125,14 +132,6 @@ void setup() {
   
   pinMode(button, INPUT);
 
-  
-
-  // if(!digitalRead(button)){
-  //   id=2;
-  // }
-  // pinMode(pwm_B, OUTPUT);
-
-  
   digitalWrite(INA_1, HIGH);
   digitalWrite(INA_2, LOW);
   // analogWrite(pwm_A, 25);
@@ -143,6 +142,8 @@ void setup() {
   // analogWrite(pwm_B, 25);
 
   digitalWrite(22, HIGH);
+
+  id = EEPROM.read(0);
 
 
   ledcSetup(ledChanne4, freq, resolution);
@@ -164,9 +165,6 @@ void setup() {
 
   delay(500);
 
-  if(id==2){
-    digitalWrite(22, LOW);
-  }
 
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != 0) {
@@ -195,6 +193,8 @@ void loop() {
         digitalWrite(22, HIGH);
         delay(50);
       }
+      EEPROM.write(0, id);
+      EEPROM.commit();
 
       Serial.print("NEW_ID: ");
       Serial.println(id);
