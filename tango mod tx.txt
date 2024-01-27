@@ -30,14 +30,14 @@ struct_message myData;
 
 
 
-#include <SoftwareSerial.h>
+// #include <SoftwareSerial.h>
 
 #define RX_PIN 5  // D5 on NodeMCU
 #define TX_PIN 12  // D6 on NodeMCU 
 #define SOFTWARE_BAUD 100000
 #define MAX_BYTES 25
 
-SoftwareSerial mySerial(RX_PIN, TX_PIN);
+// SoftwareSerial Serial(RX_PIN, TX_PIN);
 
 // parser
 uint8_t buffer[25];
@@ -137,14 +137,14 @@ void serial_report(){
 void parse_sbus(){
   
   yield();
-  if (mySerial.available() > 0) {
+  if (Serial.available() > 0) {
     switch(state){
       
       yield();
       case IDLE:
-        while(mySerial.available()>0){
+        while(Serial.available()>0){
           yield();
-          b = mySerial.read();
+          b = Serial.read();
           if(b==0x00){
             state=HEADER2;
           }
@@ -154,11 +154,11 @@ void parse_sbus(){
         }
         break;
       case HEADER2:
-        if(mySerial.available()>23){
-          b = mySerial.read();
+        if(Serial.available()>23){
+          b = Serial.read();
           if(b==0x0F){
             memset(buffer, 0, sizeof(buffer));
-            mySerial.readBytes(buffer, 23);
+            Serial.readBytes(buffer, 23);
             state=IDLE;
             found_sequence++;
             
@@ -201,7 +201,7 @@ void setup() {
   myData.ch15 = 0;
   myData.ch16 = 0;
 
-  Serial.begin(115200);
+  Serial.begin(SOFTWARE_BAUD, SERIAL_8E2);
   
     // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
@@ -219,7 +219,7 @@ void setup() {
 
 
   // Initialize software serial with inversion
-  mySerial.begin(SOFTWARE_BAUD, SWSERIAL_8E2, RX_PIN, TX_PIN, true);  // true for inverted signal
+  // Serial.begin(SOFTWARE_BAUD, SWSERIAL_8E2, RX_PIN, TX_PIN, true);  // true for inverted signal
 }
 
 void loop() {
