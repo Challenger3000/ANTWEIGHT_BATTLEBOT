@@ -209,8 +209,9 @@ void loop() {
       Serial.println(id);
       delay(200);
     }
-
-    if( (millis()-last_packet) > 50 || id!=myData.ch16-127){
+    // if no packets for 100ms assume FS_RC
+    // if( (millis()-last_packet) > 50 || id!=myData.ch16-127){
+    if( (millis()-last_packet) > 50 ){
       digitalWrite(INA_1, LOW);
       digitalWrite(INA_2, LOW);
       digitalWrite(INB_1, LOW);
@@ -223,7 +224,7 @@ void loop() {
       Serial.print(id);
       Serial.print(" received id: ");
       Serial.println(myData.ch16-127);
-    }else{
+    }else if(id==myData.ch16-127){
         if(myData.ch01>128){
         digitalWrite(INA_1, HIGH);
         digitalWrite(INA_2, LOW);
