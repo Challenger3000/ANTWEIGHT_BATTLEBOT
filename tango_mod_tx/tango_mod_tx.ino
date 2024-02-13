@@ -87,6 +87,8 @@ void extractValues(const uint8_t* buffer, uint16_t* outValues, int numValues = 1
   }
 }
 
+unsigned long last_sendtime = 0;
+
 void serial_report(){
   if(buffer[22]==0x00){
     
@@ -119,7 +121,10 @@ void serial_report(){
     myData.ch15 = values[14];
     myData.ch16 = values[15];
     yield();
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    if(millis()-last_sendtime >= 25){
+      last_sendtime = millis();
+      esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    }
     yield();
 
     Serial.println();
