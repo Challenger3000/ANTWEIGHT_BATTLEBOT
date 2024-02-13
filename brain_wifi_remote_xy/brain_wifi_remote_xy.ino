@@ -36,12 +36,30 @@
 
 // RemoteXY configurate  
 #pragma pack(push, 1)
-uint8_t RemoteXY_CONF[] =   // 59 bytes
+uint8_t RemoteXY_CONF[] =   // original
   { 255,4,0,4,0,52,0,16,31,1,5,32,32,58,24,24,2,26,31,10,
   48,10,64,13,13,1,26,31,79,78,0,31,79,70,70,0,4,128,10,84,
   45,8,2,26,68,49,0,0,63,48,8,36,86,95,99,101,108,108,0 };
-  
-// this structure defines all the variables and events of your control interface 
+
+// uint8_t RemoteXY_CONF[] =   // 54 bytes
+//   { 255,5,0,0,0,47,0,16,31,1,1,1,20,65,22,20,202,31,0,1,
+//   1,42,56,21,21,202,31,0,1,1,0,56,20,20,202,31,0,1,1,20,
+//   44,22,21,202,31,0,4,128,8,20,47,13,2,26 };
+
+// struct {
+
+//     // input variables
+//   uint8_t b5; // =1 if button pressed, else =0 
+//   uint8_t b6; // =1 if button pressed, else =0 
+//   uint8_t b4; // =1 if button pressed, else =0 
+//   uint8_t b2; // =1 if button pressed, else =0 
+//   int8_t s1; // =0..100 slider position 
+
+//     // other variable
+//   uint8_t connect_flag;  // =1 if wire connected, else =0 
+
+// } RemoteXY;
+
 struct {
 
     // input variables
@@ -382,6 +400,7 @@ void loop() {
       RemoteXY_Handler();
 
       if(RemoteXY.t1){
+      // if(true){
         int speed_A = map(RemoteXY.j1_y,-100,100,0,255)-round((float)RemoteXY.j1_x*0.5);
         int speed_B = map(RemoteXY.j1_y,-100,100,0,255)+round((float)RemoteXY.j1_x*0.5);
         Serial.print("SPEED_A ");
@@ -393,17 +412,50 @@ void loop() {
 
         if(speed_B>255) speed_B=255;
         if(speed_B<0)   speed_B=0;
-        drive_motor_A(-speed_A);
-        drive_motor_B(-speed_B);
+
+        // if(RemoteXY.b2 && RemoteXY.b4){         // forward-left
+        //   drive_motor_A(round((float)(0-128   )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(73-128  )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b2 && RemoteXY.b6){   // fowrard-right
+        //   drive_motor_A(round((float)(73-128  )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(0-128   )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b5 && RemoteXY.b4){   // backward-left
+        //   drive_motor_A(round((float)(255-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(183-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b5 && RemoteXY.b6){   // backward-right
+        //   drive_motor_A(round((float)(183-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(255-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b2){                  // forward
+        //   drive_motor_A(round((float)(0-128   )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(0-128   )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b5){                  // backward
+        //   drive_motor_A(round((float)(255-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(255-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b4){                  // left
+        //   drive_motor_A(round((float)(39-128  )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(217-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else if(RemoteXY.b6){                  // right
+        //   drive_motor_A(round((float)(217-128 )*(float)((float)RemoteXY.s1/100.0))+128);
+        //   drive_motor_B(round((float)(39-128  )*(float)((float)RemoteXY.s1/100.0))+128);
+        // }else{
+        //   drive_motor_A(128);
+        //   drive_motor_B(128);
+        // }
+        // Serial.print("SPEED_A ");
+        // Serial.print(speed_A);
+        // Serial.print("\t\tSPEED_B ");
+        // Serial.println(speed_B);
+        
       }else{
         drive_motor_A(128);
         drive_motor_B(128);
       }
 
-      RemoteXY.g1 = (analogRead(vbat) / 199.34) / 3;
-      current_duty = map(RemoteXY.s1,-100,100,0,255);
-      Serial.print("SERVO: ");
-      Serial.println(map(RemoteXY.s1,0,100,0,255));
+
+      // RemoteXY.g1 = (analogRead(vbat) / 199.34) / 3;
+      // current_duty = map(RemoteXY.s1,-100,100,0,255);
+      // Serial.print("SERVO: ");
+      // Serial.println(map(RemoteXY.s1,0,100,0,255));
     }
   }
 }
