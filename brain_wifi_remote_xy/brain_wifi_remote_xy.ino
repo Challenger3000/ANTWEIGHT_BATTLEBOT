@@ -353,17 +353,19 @@ void loop() {
         Serial.print(" received id: ");
         Serial.println(myData.ch16-127);
       }else if(id==myData.ch16-127){
-          if(myData.ch01>128){
+        if(myData.ch01>128){
           digitalWrite(INA_1, HIGH);
           digitalWrite(INA_2, LOW);
           ledcWrite(ledChannel1, ((myData.ch01-128)*2)+1);
           Serial.print("A for ward: ");
           Serial.println(((myData.ch01-128)*2)+1);
+          
         }else if(myData.ch01==128){
           digitalWrite(INA_1, LOW);
           digitalWrite(INA_2, LOW);
           ledcWrite(ledChannel1, 0);
           Serial.println("A STOP");
+
         }else if(myData.ch01<128){
           digitalWrite(INA_1, LOW);
           digitalWrite(INA_2, HIGH);
@@ -378,11 +380,13 @@ void loop() {
           ledcWrite(ledChannel2, ((myData.ch02-128)*2)+1);
           Serial.print("B for ward: ");
           Serial.println(((myData.ch02-128)*2)+1);
+
         }else if(myData.ch02==128){
           digitalWrite(INB_1, LOW);
           digitalWrite(INB_2, LOW);
           ledcWrite(ledChannel2, 0);
           Serial.println("B STOP");
+
         }else if(myData.ch02<128){
           digitalWrite(INB_1, LOW);
           digitalWrite(INB_2, HIGH);
