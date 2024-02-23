@@ -353,6 +353,9 @@ void loop() {
 
         if(speed_B>255) speed_B=255;
         if(speed_B<0)   speed_B=0;
+        
+        drive_motor_A(speed_A);
+        drive_motor_B(speed_B);
 
         // if(RemoteXY.b2 && RemoteXY.b4){         // forward-left
         //   drive_motor_A(round((float)(0-128   )*(float)((float)RemoteXY.s1/100.0))+128);
@@ -393,8 +396,8 @@ void loop() {
       }
 
 
-      // RemoteXY.g1 = (analogRead(vbat) / 199.34) / 3;
-      // current_duty = map(RemoteXY.s1,-100,100,0,255);
+      RemoteXY.g1 = (analogRead(vbat) / 199.34) / 3;
+      current_duty = map(RemoteXY.s1,-100,100,0,255);
       // Serial.print("SERVO: ");
       // Serial.println(map(RemoteXY.s1,0,100,0,255));
     }
