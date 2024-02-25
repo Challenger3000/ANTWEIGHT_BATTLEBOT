@@ -231,6 +231,7 @@ void calibrate(){
 uint8_t calculate_expo(int rc_in, float expo){
 
   float scaled_rc = ((float)rc_in/2047)-1;
+  scaled_rc = constrain(scaled_rc, -1.0, 1.0);
   float expo_factor = scaled_rc * (1 - expo + (expo * scaled_rc * scaled_rc));
 
   uint8_t expo_val = (uint8_t)((expo_factor+1)*127.5);
@@ -251,14 +252,27 @@ void read_analog(){
   
   yield();
 
-  motorA = mapWithMidpoint(analogRead(CH1), 4095, ch1_offset, 0, 0, 255);
-  motorB = mapWithMidpoint(analogRead(CH1), 4095, ch1_offset, 0, 0, 255);
+  // motorA = mapWithMidpoint(analogRead(CH1), 4095, ch1_offset, 0, 0, 255);// stock
+  // motorB = mapWithMidpoint(analogRead(CH1), 4095, ch1_offset, 0, 0, 255);
+  motorA = 255-mapWithMidpoint(constrain(analogRead(CH1),260,3400), 260, ch1_offset, 3400, 0, 255);   // big joystick
+  motorB = motorA;  
+  // Serial.print("MOTORS: ");
+  // Serial.println(motorA);
+
+//   expo_B = calculate_expo(mapWithMidpoint(analogRead(CH2), 0, ch2_offset, 4095, 0, 4095), 0.7); // stock
+    expo_B = calculate_expo(mapWithMidpoint(constrain(analogRead(CH2),330,3360), 330, ch2_offset, 3360, 0, 4095), 0.7);
   
-  expo_B = calculate_expo(mapWithMidpoint(analogRead(CH2), 0, ch2_offset, 4095, 0, 4095), 0.7);
   // Serial.println(mapWithMidpoint(analogRead(CH2), 0, ch2_offset, 4095, 0, 4095));
 
-  motorA += (expo_B-128)/4;
-  motorB -= (expo_B-128)/4;
+  motorA = constrain(motorA, 0, 255);
+  motorB = constrain(motorB, 0, 255);
+
+  // motorA += (expo_B-128)/4; //stock small joystick
+  // motorB -= (expo_B-128)/4;
+  
+
+  motorA -= (expo_B-128); // big small joystick 
+  motorB += (expo_B-128);
 
   motorA = constrain(motorA, 0, 255);
   motorB = constrain(motorB, 0, 255);
@@ -283,13 +297,13 @@ void read_analog(){
   myData.ch16 = 130;
   yield();
   
-  
-  Serial.print("stearing: ");
-  Serial.print(motorA);
+
   Serial.print("A: ");
   Serial.print(motorA);
-  Serial.print(" B: ");
-  Serial.println(motorB);
+  Serial.print("\tB: ");
+  Serial.print(motorB);
+  Serial.print("\tExpo: ");
+  Serial.println(((expo_B-128)/2));
   
   if(millis()-last_sendtime >= 12){      
     last_sendtime = millis();
@@ -357,6 +371,7 @@ void loop() {
 
 //   parse_sbus();
     read_analog();
+
 
   yield();
 }
