@@ -7,6 +7,8 @@ unsigned long last_sendtime = 0;
 //analog pins
 #define CH1 34
 #define CH2 35
+// #define CH1 9   // x-axis
+// #define CH2 10  // y-axis
 #define CH3 32
 #define CH4 33
 int ch1_offset = 0;
@@ -297,8 +299,11 @@ void read_analog(){
   myData.ch16 = 130;
   yield();
   
-
-  Serial.print("A: ");
+  Serial.print("X: ");
+  Serial.print(analogRead(CH1));
+  Serial.print("\tY: ");
+  Serial.print(analogRead(CH2));
+  Serial.print("\tA: ");
   Serial.print(motorA);
   Serial.print("\tB: ");
   Serial.print(motorB);
@@ -314,12 +319,12 @@ void read_analog(){
 void setup() {
 
   
-    pinMode(CH1, INPUT);
-    pinMode(CH2, INPUT);
-    pinMode(CH3, INPUT);
-    pinMode(CH4, INPUT);
-    delay(500);
-    calibrate();
+  pinMode(CH1, INPUT);
+  pinMode(CH2, INPUT);
+  pinMode(CH3, INPUT);
+  pinMode(CH4, INPUT);
+  delay(500);
+  calibrate();
   myData.mode = 0;
   myData.id   = 0;
   myData.ch01 = 0;
