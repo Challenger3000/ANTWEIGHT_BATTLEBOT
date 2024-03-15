@@ -34,7 +34,6 @@ typedef struct struct_message {
 struct_message myData;
 esp_now_peer_info_t peerInfo;
 
-
 void init_data_structures(){
   myData.mode = 0;
   myData.id   = 0;
