@@ -7,8 +7,8 @@ unsigned long last_sendtime = 0;
 esp_now_peer_info_t peerInfo;
 
 // hardware pins
-#define g_x 9
-#define g_y 10
+#define g_x 10
+#define g_y 9
 
 // variables
 typedef struct struct_message {
@@ -152,8 +152,10 @@ void send_joysitck(){
   // myData.ch02 = mapWithMidpoint(analogRead(g_y),260,ch2_offset,3870,0,255);
   myData.mode = 1;
   myData.id   = 1;
-  myData.ch01 = motorA;
-  myData.ch02 = motorB;
+  // myData.ch01 = motorA;
+  // myData.ch02 = motorB;
+  myData.ch01 = mapWithMidpoint(constrain(analogRead(g_x),380,3780), 380, ch1_offset, 3780, 0, 255);
+  myData.ch02 = mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 255);
   myData.ch03 = 50;
   myData.ch04 = 50;
   myData.ch05 = 50;

@@ -1,3 +1,119 @@
+// imu code start
+#include "FastIMU.h"
+#include <Wire.h>
+#define IMU_ADDRESS 0x6B    //Change to the address of the IMU
+#define PERFORM_CALIBRATION //Comment to disable startup calibration
+LSM6DSL IMU;               //Change to the name of any supported IMU! 
+
+// Currently supported IMUS: MPU9255 MPU9250 MPU6886 MPU6500 MPU6050 ICM20689 ICM20690 BMI055 BMX055 BMI160 LSM6DS3 LSM6DSL QMI8658
+
+calData calib = { 0 };  //Calibration data
+AccelData accelData;    //Sensor data
+GyroData gyroData;
+MagData magData;
+
+void init_imu(){
+  Wire.setPins(48, 47);
+  Wire.begin();
+  Wire.setClock(400000); //400khz clock
+
+  int err = IMU.init(calib, IMU_ADDRESS);
+  if (err != 0) {
+    Serial.print("Error initializing IMU: ");
+    Serial.println(err);
+    while (true) {
+      ;
+    }
+  }
+  
+#ifdef PERFORM_CALIBRATION
+  Serial.println("FastIMU calibration & data example");
+
+  delay(2000);
+  Serial.println("Keep IMU level.");
+  delay(3000);
+  IMU.calibrateAccelGyro(&calib);
+  Serial.println("Calibration done!");
+  Serial.println("Accel biases X/Y/Z: ");
+  Serial.print(calib.accelBias[0]);
+  Serial.print(", ");
+  Serial.print(calib.accelBias[1]);
+  Serial.print(", ");
+  Serial.println(calib.accelBias[2]);
+  Serial.println("Gyro biases X/Y/Z: ");
+  Serial.print(calib.gyroBias[0]);
+  Serial.print(", ");
+  Serial.print(calib.gyroBias[1]);
+  Serial.print(", ");
+  Serial.println(calib.gyroBias[2]);
+  delay(5000);
+  IMU.init(calib, IMU_ADDRESS);
+#endif
+
+  //err = IMU.setGyroRange(500);      //USE THESE TO SET THE RANGE, IF AN INVALID RANGE IS SET IT WILL RETURN -1
+  //err = IMU.setAccelRange(2);       //THESE TWO SET THE GYRO RANGE TO ±500 DPS AND THE ACCELEROMETER RANGE TO ±2g
+  
+  if (err != 0) {
+    Serial.print("Error Setting range: ");
+    Serial.println(err);
+    while (true) {
+      ;
+    }
+  }
+}
+
+void imu_print(){
+  IMU.update();
+  IMU.getAccel(&accelData);
+  Serial.print(accelData.accelX);
+  Serial.print("\t");
+  Serial.print(accelData.accelY);
+  Serial.print("\t");
+  Serial.print(accelData.accelZ);
+  Serial.print("\t");
+  IMU.getGyro(&gyroData);
+  Serial.print(gyroData.gyroX);
+  Serial.print("\t");
+  Serial.print(gyroData.gyroY);
+  Serial.print("\t");
+  Serial.print(gyroData.gyroZ);
+  Serial.print("\t");
+  Serial.println(IMU.getTemp());  
+}
+// imu code end
+
+// pid stuff code
+#include <PID_v1.h>
+#define PIN_INPUT 0
+#define PIN_OUTPUT 3
+
+//Define Variables we'll be connecting to
+double Setpoint, Input, Output;
+
+//Specify the links and initial tuning parameters
+double Kp=0.06, Ki=0, Kd=0;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+void init_pid(){
+  Setpoint = 0.0;
+  myPID.SetMode(AUTOMATIC);
+  myPID.SetOutputLimits(-128,128);
+}
+
+void update_pid(){
+  
+  IMU.update();
+  IMU.getGyro(&gyroData);
+  
+  Input = (double)gyroData.gyroZ;
+  myPID.Compute();
+  // Serial.print("yaw: ");
+  // Serial.print(gyroData.gyroZ);  
+  // Serial.print("\tpid_result: ");
+  // Serial.println(Output);
+
+}
+// pid code end
 
 // motor driver code start
 enum DRV8908_MOTOR_CONFIG {
@@ -14,22 +130,22 @@ enum DRV8908_MOTOR_REGISTER_STATES {
   A1_FORWARD  = 0b01100000, A2_FORWARD  = 0b00000000,
   A1_BACKWARD = 0b10010000, A2_BACKWARD = 0b00000000,
   A1_COAST    = 0b00000000, A2_COAST    = 0b00000000,
-  A1_BREAK    = 0b00000000, A2_BREAK    = 0b00000000,
+  A1_BREAK    = 0b01010000, A2_BREAK    = 0b00000000,
 
   C1_FORWARD  = 0b00000000, C2_FORWARD  = 0b00011000,
   C1_BACKWARD = 0b00000000, C2_BACKWARD = 0b00100100,
   C1_COAST    = 0b00000000, C2_COAST    = 0b00000000,
-  C1_BREAK    = 0b00000000, C2_BREAK    = 0b00000000,
+  C1_BREAK    = 0b00000000, C2_BREAK    = 0b00010100,
   
   B1_FORWARD  = 0b00000001, B2_FORWARD  = 0b00000010,
   B1_BACKWARD = 0b00000010, B2_BACKWARD = 0b00000001,
   B1_COAST    = 0b00000000, B2_COAST    = 0b00000000,
-  B1_BREAK    = 0b00000000, B2_BREAK    = 0b00000000,
+  B1_BREAK    = 0b00000001, B2_BREAK    = 0b00000001,
 
   D1_FORWARD  = 0b00000100, D2_FORWARD  = 0b10000000,
   D1_BACKWARD = 0b00001000, D2_BACKWARD = 0b01000000,
   D1_COAST    = 0b00000000, D2_COAST    = 0b00000000,
-  D1_BREAK    = 0b00000000, D2_BREAK    = 0b00000000,
+  D1_BREAK    = 0b00000100, D2_BREAK    = 0b01000000,
 };
 #include <SPI.h>
 #define SCK 14
@@ -220,6 +336,8 @@ void init_drv8908(uint8_t config){
     // statements
     break;
   }
+  Serial.print("motor status: ");
+  read_drv8908_status();
 }
 
 void read_drv8908_status(){
@@ -232,9 +350,9 @@ void read_drv8908_status(){
   delayMicroseconds(1);
   digitalWrite(CHIP_SEL, HIGH);
 
-  Serial.print(drv8908_status, BIN);
-  Serial.print("\t");
-  Serial.println(received_data, BIN);
+  // Serial.print(drv8908_status, BIN);
+  // Serial.print("\t");
+  // Serial.println(received_data, BIN);
   delay(1);
 }
 // motor driver code end
@@ -270,14 +388,14 @@ struct_message myData;
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   last_packet=millis();
-  
-  Serial.print(myData.mode);
-  Serial.print("\t");
-  Serial.print(myData.id);
-  Serial.print("\t");
-  Serial.print(myData.ch01);
-  Serial.print("\t");
-  Serial.println(myData.ch02);
+  Setpoint = map(myData.ch02,0,255,-600,600);
+  // Serial.print(myData.mode);
+  // Serial.print("\t");
+  // Serial.print(myData.id);
+  // Serial.print("\t");
+  // Serial.print(myData.ch01);
+  // Serial.print("\t");
+  // Serial.println(myData.ch02);
 }
 
 void init_esp_now(){
@@ -290,71 +408,58 @@ void init_esp_now(){
 }
 // esp_now code end
 
-
-
-
-
 void setup() {
   Serial.begin(115200);
   // while (!Serial) {
   //   ;
   // }
   delay(100);
-
-  init_drv8908(MOTOR_LAYOUT);
   Serial.println("Starting...\n");
   Serial.println("Running...");
-  Serial.print("motor status: ");
 
-  read_drv8908_status();
+  init_drv8908(MOTOR_LAYOUT);
+  init_imu();
   init_esp_now();
-    // write_register_drv8908(PWM_DUTY_1, 50);                // sets motor duty cycle
+  init_pid();
 }
 
 void loop() {
+  // imu_print();
+  update_pid();
+  myData.ch03 = myData.ch01;  
+  myData.ch04 = myData.ch01;
 
+  myData.ch03 -= round(Output);
+  myData.ch04 += round(Output);
+  
+  myData.ch03 = constrain(myData.ch03,0,255);
+  myData.ch04 = constrain(myData.ch04,0,255);
   // if no packets for 100ms assume FS_RC
-  // if( (millis()-last_packet) > 50 || id!=myData.ch16-127){
   if( (millis()-last_packet) > 50 ){
       drive_motor_A(COAST, 0);
       drive_motor_B(COAST, 0);
     // Serial.println("NO SIGNAL");
   }else if(true){
-    if(myData.ch01>128){
-      drive_motor_A(FORWARD, ((myData.ch01-128)*2)+1);
+    if(myData.ch03>128){
+      drive_motor_A(FORWARD, ((myData.ch03-128)*2)+1);
       // Serial.println("B for ward: ");
-    }else if(myData.ch01==128){
+    }else if(myData.ch03==128){
       drive_motor_A(COAST, 0);
       // Serial.println("stop");
-    }else if(myData.ch01<128){
-      drive_motor_A(BACKWARD, ((128-myData.ch01)*2)-1);
+    }else if(myData.ch03<128){
+      drive_motor_A(BACKWARD, ((128-myData.ch03)*2)-1);
       // Serial.println("A backward: ");
     }
 
-    if(myData.ch02>128){
-      drive_motor_B(BACKWARD, ((myData.ch02-128)*2)+1);
+    if(myData.ch04>128){
+      drive_motor_B(BACKWARD, ((myData.ch04-128)*2)+1);
       // Serial.println("B for ward: ");
-    }else if(myData.ch02==128){
+    }else if(myData.ch04==128){
       drive_motor_B(COAST, 0);
       // Serial.println("stop");
-    }else if(myData.ch02<128){
-      drive_motor_B(FORWARD, ((128-myData.ch02)*2)-1);
+    }else if(myData.ch04<128){
+      drive_motor_B(FORWARD, ((128-myData.ch04)*2)-1);
       // Serial.println("B backward: ");
     }      
   }
-
-  // delay(300);
-  
-  // // Serial.println("FORWARD");
-  // Serial.println();
-  // // write_register_drv8908(OP_CTRL_2, C2_FORWARD);
-  // drive_motor_A(FORWARD, 50);
-  // drive_motor_B(BACKWARD, 50);
-
-  // delay(300);
-  // // Serial.println("BACKWARD");
-  // Serial.println();
-  // // write_register_drv8908(OP_CTRL_2, C2_BACKWARD);
-  // drive_motor_A(BACKWARD, 50);
-  // drive_motor_B(FORWARD, 50);
 }
