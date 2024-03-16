@@ -106,7 +106,6 @@ void init_drv8908(){
   Serial.println(read_register_drv8908(PWM_MAP_CTRL_2), BIN);
   Serial.print("PWM_MAP_CTRL_2: ");
   Serial.println(read_register_drv8908(PWM_MAP_CTRL_2), BIN);
-  
 }
 
 void setup() {
