@@ -1,4 +1,4 @@
-// esp_now reciever 
+// esp_now reciever code start
 #include <WiFi.h>
 #include <esp_now.h>
 uint8_t id = 1;
@@ -47,8 +47,7 @@ void init_esp_now(){
   }
   esp_now_register_recv_cb(OnDataRecv);
 }
-
-// esp_now
+// esp_now code end 
 
 void setup(){
   Serial.begin(115200);  
