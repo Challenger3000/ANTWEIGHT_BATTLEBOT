@@ -426,39 +426,34 @@ void setup() {
 void loop() {
   // imu_print();
   update_pid();
-  myData.ch03 = myData.ch01;  
-  myData.ch04 = myData.ch01;
-
-  myData.ch03 -= round(Output);
-  myData.ch04 += round(Output);
   
-  myData.ch03 = constrain(myData.ch03,0,255);
-  myData.ch04 = constrain(myData.ch04,0,255);
+  myData.ch01 -= round(Output);
+  myData.ch02 += round(Output);
   // if no packets for 100ms assume FS_RC
   if( (millis()-last_packet) > 50 ){
       drive_motor_A(COAST, 0);
       drive_motor_B(COAST, 0);
     // Serial.println("NO SIGNAL");
   }else if(true){
-    if(myData.ch03>128){
-      drive_motor_A(FORWARD, ((myData.ch03-128)*2)+1);
+    if(myData.ch01>128){
+      drive_motor_A(FORWARD, ((myData.ch01-128)*2)+1);
       // Serial.println("B for ward: ");
-    }else if(myData.ch03==128){
+    }else if(myData.ch01==128){
       drive_motor_A(COAST, 0);
       // Serial.println("stop");
-    }else if(myData.ch03<128){
-      drive_motor_A(BACKWARD, ((128-myData.ch03)*2)-1);
+    }else if(myData.ch01<128){
+      drive_motor_A(BACKWARD, ((128-myData.ch01)*2)-1);
       // Serial.println("A backward: ");
     }
 
-    if(myData.ch04>128){
-      drive_motor_B(BACKWARD, ((myData.ch04-128)*2)+1);
+    if(myData.ch02>128){
+      drive_motor_B(BACKWARD, ((myData.ch02-128)*2)+1);
       // Serial.println("B for ward: ");
-    }else if(myData.ch04==128){
+    }else if(myData.ch02==128){
       drive_motor_B(COAST, 0);
       // Serial.println("stop");
-    }else if(myData.ch04<128){
-      drive_motor_B(FORWARD, ((128-myData.ch04)*2)-1);
+    }else if(myData.ch02<128){
+      drive_motor_B(FORWARD, ((128-myData.ch02)*2)-1);
       // Serial.println("B backward: ");
     }      
   }
