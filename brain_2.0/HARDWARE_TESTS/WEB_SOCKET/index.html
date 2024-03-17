@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ROBOT PID TUNER</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 100vw; /* Take up full viewport width */
+            padding: 20px; /* Padding around the elements */
+            box-sizing: border-box;
+        }
+        input, button {
+            display: block;
+            width: 100%; /* Full container width */
+            padding: 20px; /* Larger touch targets */
+            margin: 10px 0; /* Spacing between elements */
+            font-size: 2em; /* Larger font size for visibility */
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>ROBOT PID TUNER</h1>
+    <div class="container">
+        <div class="label">P</div>
+        <input type="number" id="number1" placeholder="P value" maxlength="5">
+
+        <div class="label">I</div>
+        <input type="number" id="number2" placeholder="I value" maxlength="5">
+
+        <div class="label">D</div>
+        <input type="number" id="number3" placeholder="D value" maxlength="5">
+
+        <button id="button" class="button">Send</button>
+    </div>
+
+    <script>
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
+        window.addEventListener('load', onLoad);
+        function initWebSocket() {
+            console.log('Trying to open a WebSocket connection...');
+            websocket = new WebSocket(gateway);
+            websocket.onopen    = onOpen;
+            websocket.onclose   = onClose;
+            websocket.onmessage = onMessage;
+        }
+        function onOpen(event) {
+            console.log('Connection opened');
+        }
+        function onClose(event) {
+            console.log('Connection closed');
+            setTimeout(initWebSocket, 2000);
+        }
+        function onMessage(event) {
+            var state;
+            if (event.data == "1"){
+            state = "ON";
+            }
+            else{
+            state = "OFF";
+            }
+            document.getElementById('state').innerHTML = state;
+        }
+        function onLoad(event) {
+            initWebSocket();
+            initButton();
+        }
+        function initButton() {
+            document.getElementById('button').addEventListener('click', send);
+        }
+        function send(){
+            var num1 = document.getElementById('number1').value;
+            var num2 = document.getElementById('number2').value;
+            var num3 = document.getElementById('number3').value;
+            
+            // Formatting the message in the ":10:20:30.5:" format
+            var message = ":" + num1 + ":" + num2 + ":" + num3 + ":";
+            websocket.send(message);
+            console.log('Sent: ' + message);
+        }
+
+        function request_update(){
+            websocket.send("update");
+        }
+    </script>
+</body>
+</html>

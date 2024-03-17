@@ -125,7 +125,8 @@ void send_joysitck(){
   
   motorA = 255-mapWithMidpoint(constrain(analogRead(g_x),380,3780), 380, ch1_offset, 3780, 0, 255);   // big joystick
   motorB = motorA;
-  expo_B = calculate_expo(mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 4095), 0.2);
+  // expo_B = calculate_expo(mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 4095), 0.2);
+  expo_B = mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 255);
   
   motorA = constrain(motorA, 0, 255);
   motorB = constrain(motorB, 0, 255);
@@ -169,9 +170,9 @@ void send_joysitck(){
   myData.ch15 = 50;
   myData.ch16 = 130;
   
-  Serial.print(myData.ch01);
-  Serial.print("\t");
-  Serial.println(myData.ch02);
+  // Serial.print(myData.ch01);
+  // Serial.print("\t");
+  // Serial.println(myData.ch02);
 
   esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
 }
