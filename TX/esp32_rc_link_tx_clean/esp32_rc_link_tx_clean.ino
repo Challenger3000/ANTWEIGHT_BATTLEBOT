@@ -130,8 +130,8 @@ void send_joysitck(){
   motorA = constrain(motorA, 0, 255);
   motorB = constrain(motorB, 0, 255);
 
-  motorA -= (expo_B-128)/4; //stock small joystick
-  motorB += (expo_B-128)/4;
+  motorA += (expo_B-128)/4; //stock small joystick
+  motorB -= (expo_B-128)/4;
   
 
   // motorA -= (expo_B-128); // big small joystick 

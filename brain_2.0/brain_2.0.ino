@@ -1,11 +1,32 @@
+
+// led code start
+#include <FastLED.h>
+#define NUM_LEDS 1
+#define DATA_PIN 1
+#define CLOCK_PIN 13
+CRGB leds[NUM_LEDS];
+
+void led_init(){
+  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB
+  leds[0] = CRGB(255, 255, 255);
+  FastLED.show();
+  delay(10);
+  leds[0] = CRGB(0, 255, 0);
+  FastLED.show();
+}
+
+void led_color(uint8_t red, uint8_t green, uint8_t blue){
+  leds[0] = CRGB(green, red, blue);
+  FastLED.show();
+}
+// led code end
+
 // imu code start
 #include "FastIMU.h"
 #include <Wire.h>
 #define IMU_ADDRESS 0x6B    //Change to the address of the IMU
 #define PERFORM_CALIBRATION //Comment to disable startup calibration
 LSM6DSL IMU;               //Change to the name of any supported IMU! 
-
-// Currently supported IMUS: MPU9255 MPU9250 MPU6886 MPU6500 MPU6050 ICM20689 ICM20690 BMI055 BMX055 BMI160 LSM6DS3 LSM6DSL QMI8658
 
 calData calib = { 0 };  //Calibration data
 AccelData accelData;    //Sensor data
@@ -60,6 +81,7 @@ void init_imu(){
       ;
     }
   }
+  led_color(0,10,0);
 }
 
 void imu_print(){
@@ -417,6 +439,7 @@ void setup() {
   Serial.println("Starting...\n");
   Serial.println("Running...");
 
+  led_init();
   init_drv8908(MOTOR_LAYOUT);
   init_imu();
   init_esp_now();
