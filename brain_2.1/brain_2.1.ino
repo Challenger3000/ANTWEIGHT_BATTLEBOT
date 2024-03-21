@@ -2,9 +2,13 @@
 
 uint8_t wireles_mode = 0; // 0 - esp_now signal receiver. 1 - wifi web server
 double Kp=0.06, Ki=0, Kd=0;
-bool motors_on = true;
+bool motors_on = false;
 bool new_rx_data = false;
-
+#define GIMBAL_STICK_DEADZONE 50
+int motorA_output = 0;
+int motorB_output = 0;
+int motorC_output = 0;
+int motorD_output = 0;
 // general variables end
 
 // wifi website code start
@@ -495,9 +499,9 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_1, PWM);                // sets motor duty cycle
+        write_register_drv8908(PWM_DUTY_1, PWM);
       }else{
-        
+        write_register_drv8908(PWM_DUTY_1, 0);
       }
       write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
       break;
@@ -635,15 +639,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   new_rx_data = true;
   // Setpoint = map(myData.ch02,0,255,-600,600);
 
-  Serial.print(myData.x_axis);
-  Serial.print("\t");
-  Serial.print(myData.y_axis);
-  Serial.print("\t");
-  Serial.print(myData.pot_1);
-  Serial.print("\t");
-  Serial.print(myData.sw_1);
-  Serial.print("\t");
-  Serial.println(myData.sw_2);
+  // Serial.print(myData.x_axis);
+  // Serial.print("\t");
+  // Serial.print(myData.y_axis);
+  // Serial.print("\t");
+  // Serial.print(myData.pot_1);
+  // Serial.print("\t");
+  // Serial.print(myData.sw_1);
+  // Serial.print("\t");
+  // Serial.println(myData.sw_2);
 }
 
 void init_esp_now(){
@@ -706,6 +710,78 @@ void init_servo(){
 }
 // servo code end
 
+void drive_motors(){
+
+
+  // myData.ch01 -= round(Output);
+  // myData.ch02 += round(Output);
+
+  if(myData.y_axis > (2048 + GIMBAL_STICK_DEADZONE)){
+    motorA_output = myData.x_axis-2048;
+    motorB_output = myData.x_axis-2048;
+  }else
+  if(myData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+    motorA_output = 2048-myData.x_axis;
+    motorB_output = 2048-myData.x_axis;
+  }else{
+    motorA_output = 0;
+    motorB_output = 0;
+  }
+  
+  if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) && ){
+    motorA_output = myData.x_axis-2048;
+    motorB_output = myData.x_axis-2048;
+  }
+
+
+
+  if((millis()-last_packet) > 50 ){   // if no packets for 100ms assume FS_RC
+      drive_motor_A(COAST, 0);
+      drive_motor_B(COAST, 0);
+    // Serial.println("NO SIGNAL");
+  }else if(true){             // binding check goes here
+    if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE)){
+      drive_motor_A(FORWARD, map((myData.x_axis-2048),0,2048,0,255);
+      // Serial.println("B for ward: ");
+    }else if(myData.x_axis < 2048 + GIMBAL_STICK_DEADZONE && myData.x_axis > 2048 - GIMBAL_STICK_DEADZONE){
+      drive_motor_A(COAST, 0);
+      // Serial.println("stop");
+    }else if(myData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+      drive_motor_A(BACKWARD, map((2048 - myData.x_axis),0,2048,0,255);
+      // Serial.println("A backward: ");
+    }
+
+    if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE)){
+      drive_motor_A(FORWARD, map((myData.x_axis-2048),0,2048,0,255);
+      // Serial.println("B for ward: ");
+    }else if(myData.x_axis < 2048 + GIMBAL_STICK_DEADZONE && myData.x_axis > 2048 - GIMBAL_STICK_DEADZONE){
+      drive_motor_A(COAST, 0);
+      // Serial.println("stop");
+    }else if(myData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+      drive_motor_A(BACKWARD, map((2048 - myData.x_axis),0,2048,0,255);
+      // Serial.println("A backward: ");
+    }
+
+    if(myData.ch02>128){
+      drive_motor_B(BACKWARD, ((myData.ch02-128)*2)+1);
+      // Serial.println("B for ward: ");
+    }else if(myData.ch02==128){
+      drive_motor_B(COAST, 0);
+      // Serial.println("stop");
+    }else if(myData.ch02<128){
+      drive_motor_B(FORWARD, ((128-myData.ch02)*2)-1);
+      // Serial.println("B backward: ");
+    }
+
+    myservo.write(map(myData.pot_1,0,4950,0,180));
+    
+    // Serial.print(myData.ch01);
+    // Serial.print("\t");
+    // Serial.println(map(myData.ch01,0,4950,0,180));
+  }
+
+}
+
 void setup() {
   Serial.begin(115200);
   // while (!Serial) {
@@ -732,40 +808,6 @@ void loop() {
   // imu_print();
   update_pid();
   update_gpio();
-  
-  // myData.ch01 -= round(Output);
-  // myData.ch02 += round(Output);
-  // if no packets for 100ms assume FS_RC
-  if((millis()-last_packet) > 50 ){
-      drive_motor_A(COAST, 0);
-      drive_motor_B(COAST, 0);
-    // Serial.println("NO SIGNAL");
-  }else if(true){             // binding check goes here
-    // if(myData.ch01>128){
-    //   drive_motor_A(FORWARD, ((myData.ch01-128)*2)+1);
-    //   // Serial.println("B for ward: ");
-    // }else if(myData.ch01==128){
-    //   drive_motor_A(COAST, 0);
-    //   // Serial.println("stop");
-    // }else if(myData.ch01<128){
-    //   drive_motor_A(BACKWARD, ((128-myData.ch01)*2)-1);
-    //   // Serial.println("A backward: ");
-    // }
+  drive_motors();
 
-    // if(myData.ch02>128){
-    //   drive_motor_B(BACKWARD, ((myData.ch02-128)*2)+1);
-    //   // Serial.println("B for ward: ");
-    // }else if(myData.ch02==128){
-    //   drive_motor_B(COAST, 0);
-    //   // Serial.println("stop");
-    // }else if(myData.ch02<128){
-    //   drive_motor_B(FORWARD, ((128-myData.ch02)*2)-1);
-    //   // Serial.println("B backward: ");
-    // }
-    myservo.write(map(myData.ch01,0,4950,0,180));
-    
-    Serial.print(myData.ch01);
-    Serial.print("\t");
-    Serial.println(map(myData.ch01,0,4950,0,180));
-  }
 }
