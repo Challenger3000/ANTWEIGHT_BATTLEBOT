@@ -717,20 +717,20 @@ void drive_motors(){
   // myData.ch02 += round(Output);
 
   if(myData.y_axis > (2048 + GIMBAL_STICK_DEADZONE)){
-    motorA_output = myData.x_axis-2048;
-    motorB_output = myData.x_axis-2048;
+    motorA_output = myData.y_axis-2048;
+    motorB_output = myData.y_axis-2048;
   }else
   if(myData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-    motorA_output = 2048-myData.x_axis;
-    motorB_output = 2048-myData.x_axis;
+    motorA_output = 2048-myData.y_axis;
+    motorB_output = 2048-myData.y_axis;
   }else{
     motorA_output = 0;
     motorB_output = 0;
   }
   
-  if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) && ){
-    motorA_output = myData.x_axis-2048;
-    motorB_output = myData.x_axis-2048;
+  if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || myData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+    motorA_output += myData.x_axis;
+    motorB_output -= myData.x_axis;
   }
 
 
