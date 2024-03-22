@@ -7,8 +7,8 @@ unsigned long last_sendtime = 0;
 esp_now_peer_info_t peerInfo;
 
 // hardware pins
-#define g_x 10
-#define g_y 9
+#define g_x 9
+#define g_y 10
 #define pot 8
 #define switch_1_up   15
 #define switch_1_down 16
@@ -19,8 +19,8 @@ esp_now_peer_info_t peerInfo;
 typedef struct struct_message {
   uint8_t   mode;
   uint8_t   id;
-  uint32_t  x_axis;
-  uint32_t  y_axis;
+  int32_t   x_axis;
+  int32_t   y_axis;
   uint32_t  pot_1;
   uint8_t   sw_1;
   uint8_t   sw_2;
@@ -177,7 +177,7 @@ void send_joysitck(){
   myData.mode   = 1;
   myData.id     = 1;
   myData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),380,3780), 380, ch1_offset, 3780, 0, 4095);
-  myData.y_axis = mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 4095);
+  myData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 4095);
   myData.pot_1  = analogRead(pot);
   myData.sw_1   = get_switch_pos_1();
   myData.sw_2   = get_switch_pos_2();
