@@ -158,12 +158,12 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     Ki = num2;
     Kd = num3;
     
-    Serial.print("Number 1: ");
-    Serial.println(num1, 5);
-    Serial.print("Number 2: ");
-    Serial.println(num2, 5);
-    Serial.print("Number 3: ");
-    Serial.println(num3, 5);
+    // Serial.print("Number 1: ");
+    // Serial.println(num1, 5);
+    // Serial.print("Number 2: ");
+    // Serial.println(num2, 5);
+    // Serial.print("Number 3: ");
+    // Serial.println(num3, 5);
     led_color(255,255,255);
     delay(200);
     led_color(10,0,10);
@@ -216,6 +216,26 @@ void run_web_server(){
   ws.cleanupClients();  
 }
 // wifi website code end 
+
+// eeprom code start
+#define EEPROM_SIZE 200
+#define EEPROM_ADDRES 100
+#include <EEPROM.h>
+
+typedef struct struct_eeprom {
+  uint8_t   eeprom_structure_version;
+  uint8_t   reserved;
+  double    PID_P;
+  double    PID_I;
+  double    PID_D;
+} struct_eeprom;
+struct_eeprom EEPROM_DATA;
+
+void init_eeprom(){  
+  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
+}
+// eeprom code end 
 
 // led code start
 #include <FastLED.h>
@@ -346,6 +366,13 @@ void init_pid(){
   Setpoint = 0.0;
   myPID.SetMode(AUTOMATIC);
   myPID.SetOutputLimits(-2048,2048);
+  myPID.SetTunings(EEPROM_DATA.PID_P,EEPROM_DATA.PID_I,EEPROM_DATA.PID_D);
+  Serial.print("EEPROM PID PARAMS P: ");
+  Serial.print(EEPROM_DATA.PID_P);
+  Serial.print("\tI: ");
+  Serial.print(EEPROM_DATA.PID_I);
+  Serial.print("\tD: ");
+  Serial.println(EEPROM_DATA.PID_D);
 }
 
 void update_pid(){
@@ -680,17 +707,25 @@ void switch_wireles_mode(){
   }else{
     wireles_mode = 0;
     server.end();
-    init_esp_now();    
+    init_esp_now();
     myPID.SetTunings(Kp,Ki,Kd);
+
+    EEPROM_DATA.PID_P = Kp;
+    EEPROM_DATA.PID_I = Ki;
+    EEPROM_DATA.PID_D = Kd;
+    EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+    EEPROM.commit();
     led_color(0,10,0);
   }
 }
 
 // gpio code start
 #define BUTTON 4
+#define VSENSE 10
 
 void init_gpio(){
   pinMode(BUTTON, INPUT);
+  pinMode(VSENSE, INPUT);
 }
 
 void update_gpio(){
@@ -727,6 +762,7 @@ void drive_motors(){
     drive_motor_A(COAST, 0);
     drive_motor_B(COAST, 0);
     return;
+    led_color(10,0,0);
     // Serial.println("NO SIGNAL");
   }
 
@@ -793,8 +829,8 @@ void setup() {
   // }
   delay(100);
   Serial.println("Starting...\n");
-  Serial.println("Running...");
 
+  init_eeprom();
   init_gpio();
   led_init();
   init_drv8908(MOTOR_LAYOUT);
@@ -810,6 +846,13 @@ void setup() {
 
 void loop() {
   // imu_print();
+  if(Serial){
+    double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
+    Serial.print("V_bat: ");
+    Serial.print(v_bat);
+    Serial.print("\tV_cell: ");
+    Serial.println(v_bat/3.0);
+  }
   update_gpio();
   update_pid();
   drive_motors();

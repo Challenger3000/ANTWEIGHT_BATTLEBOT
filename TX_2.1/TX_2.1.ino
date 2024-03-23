@@ -270,7 +270,6 @@ void setup() {
     ch1_offset = EEPROM_DATA.offset_x;
     ch2_offset = EEPROM_DATA.offset_y;
   }
-
   Serial.print(" eeprom_structure_version = ");
   Serial.println(EEPROM_DATA.eeprom_structure_version);
   Serial.print(" reserved = ");
@@ -294,14 +293,10 @@ void setup() {
 
 void loop() {
   send_joysitck();
-  // Serial.print(analogRead(pot));
+  // Serial.print(analogRead(g_x));
   // Serial.print("\t");
-  // Serial.print(digitalRead(switch_1_up));
+  // Serial.print(analogRead(g_y));
   // Serial.print("\t");
-  // Serial.print(digitalRead(switch_1_down));
-  // Serial.print("\t");
-  // Serial.print(digitalRead(switch_2_up));
-  // Serial.print("\t");
-  // Serial.println(digitalRead(switch_2_down));
+  // Serial.println(analogRead(pot));
   delay(10);
 }
