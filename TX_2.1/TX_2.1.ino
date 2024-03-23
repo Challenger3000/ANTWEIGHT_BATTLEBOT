@@ -1,3 +1,26 @@
+// eeprom code start
+#define EEPROM_SIZE 200
+#define EEPROM_ADDRES 100
+#include <EEPROM.h>
+
+typedef struct struct_eeprom {
+  uint8_t   eeprom_structure_version;
+  uint8_t   reserved;
+  uint8_t   need_to_calibrate;
+  int32_t   calib_x_low;
+  int32_t   calib_x_high;
+  int32_t   calib_y_low;
+  int32_t   calib_y_high;
+  int32_t   offset_x;
+  int32_t   offset_y;
+} struct_eeprom;
+struct_eeprom EEPROM_DATA;
+
+void init_eeprom(){  
+  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
+}
+// eeprom code end
 
 // esp now
 #include <esp_now.h>
@@ -97,19 +120,59 @@ long mapWithMidpoint(long value, long fromLow, long fromMid, long fromHigh, long
 }
 
 
-void calibrate(){
-  Serial.println("Calibrating...");
+void calibrate_joystick(){
+  Serial.println("Calibrating josystick midpoint...");
   ch1_offset = 0;
   ch2_offset = 0;
-  for(int i=0; i<500; i++){
+  for(int i=0; i<5000; i++){
     ch1_offset += analogRead(g_x);
     ch2_offset += analogRead(g_y);
     delay(1);
   }
-  ch1_offset = ch1_offset/500;
-  ch2_offset = ch2_offset/500;
+  ch1_offset = ch1_offset/5000;
+  ch2_offset = ch2_offset/5000;
   
-  Serial.println("Calibration done");
+  Serial.println("midpoint calibration done\n");
+  EEPROM_DATA.need_to_calibrate = 0;
+  EEPROM_DATA.offset_x = ch1_offset;
+  EEPROM_DATA.offset_y = ch2_offset;
+
+  // calibrate joystick limits
+  Serial.println("Calibrating joystick limits...");
+  Serial.println("move joystick to all limits for 10sec");
+  delay(1000);
+  unsigned long start_time = millis();
+  uint16_t x_low  = 2048;
+  uint16_t x_high = 2048;
+  uint16_t y_low  = 2048;
+  uint16_t y_high = 2048;
+  while (millis()-start_time < 10000)
+  {
+    x_low = min(x_low, analogRead(g_x));
+    x_high = max(x_high, analogRead(g_x));
+    y_low = min(y_low, analogRead(g_y));
+    y_high = max(y_high, analogRead(g_y));
+
+    delay(10);
+  }
+  
+  Serial.println("joystick limits calibration done");
+  Serial.print("calib_x_low = ");
+  Serial.println(x_low);
+  Serial.print("calib_x_high = ");
+  Serial.println(x_high);
+  Serial.print("calib_y_low = ");
+  Serial.println(y_low);
+  Serial.print("calib_y_high = ");
+  Serial.println(y_high);
+
+  EEPROM_DATA.calib_x_low  = x_low;
+  EEPROM_DATA.calib_x_high = x_high;
+  EEPROM_DATA.calib_y_low  = y_low;
+  EEPROM_DATA.calib_y_high = y_high;
+
+  EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+  EEPROM.commit();
 }
 
 uint8_t calculate_expo(int rc_in, float expo){
@@ -151,33 +214,11 @@ uint8_t get_switch_pos_2(){
 }
 
 void send_joysitck(){
-  motorA = 255-mapWithMidpoint(constrain(analogRead(g_x),380,3780), 380, ch1_offset, 3780, 0, 255);   // big joystick
-  motorB = motorA;
-  // expo_B = calculate_expo(mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 4095), 0.2);
-  expo_B = mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 255);
-  
-  motorA = constrain(motorA, 0, 255);
-  motorB = constrain(motorB, 0, 255);
 
-  motorA += (expo_B-128)/4; //stock small joystick
-  motorB -= (expo_B-128)/4;
-  
-  // motorA -= (expo_B-128); // big small joystick 
-  // motorB += (expo_B-128);
-
-  motorA = constrain(motorA, 0, 255);
-  motorB = constrain(motorB, 0, 255);
-
-  // myData.mode = 1;
-  // myData.id   = 1;
-  // myData.ch01 = map(analogRead(g_x),380,3780,0,255);
-  // myData.ch02 = map(analogRead(g_y),260,3870,0,255);
-  // myData.ch01 = mapWithMidpoint(analogRead(g_x),380,ch1_offset,3780,0,255);
-  // myData.ch02 = mapWithMidpoint(analogRead(g_y),260,ch2_offset,3870,0,255);
   myData.mode   = 1;
   myData.id     = 1;
-  myData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),380,3780), 380, ch1_offset, 3780, 0, 4095);
-  myData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),260,3870), 260, ch2_offset, 3870, 0, 4095);
+  myData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
+  myData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low ,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095);
   myData.pot_1  = analogRead(pot);
   myData.sw_1   = get_switch_pos_1();
   myData.sw_2   = get_switch_pos_2();
@@ -219,10 +260,36 @@ void init_gpio(){
 
 void setup() {
   Serial.begin(115200);
+  init_eeprom();
   init_gpio();
-  calibrate();
   init_data_structures();
   init_esp_now();
+  if(EEPROM_DATA.need_to_calibrate){
+    calibrate_joystick();
+  }else{
+    ch1_offset = EEPROM_DATA.offset_x;
+    ch2_offset = EEPROM_DATA.offset_y;
+  }
+
+  Serial.print(" eeprom_structure_version = ");
+  Serial.println(EEPROM_DATA.eeprom_structure_version);
+  Serial.print(" reserved = ");
+  Serial.println(EEPROM_DATA.reserved);
+  Serial.print(" calibration needed = ");
+  Serial.println(EEPROM_DATA.need_to_calibrate);
+  Serial.print(" calib_x_low = ");
+  Serial.println(EEPROM_DATA.calib_x_low);
+  Serial.print(" calib_x_high = ");
+  Serial.println(EEPROM_DATA.calib_x_high);
+  Serial.print(" calib_y_low = ");
+  Serial.println(EEPROM_DATA.calib_y_low);
+  Serial.print(" calib_y_high = ");
+  Serial.println(EEPROM_DATA.calib_y_high);
+  Serial.print(" offset_x = ");
+  Serial.println(EEPROM_DATA.offset_x);
+  Serial.print(" offset_y = ");
+  Serial.println(EEPROM_DATA.offset_y);
+  
 }
 
 void loop() {

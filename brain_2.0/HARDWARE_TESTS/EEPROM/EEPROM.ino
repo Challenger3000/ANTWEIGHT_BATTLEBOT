@@ -1,8 +1,7 @@
-// eeprom
+// eeprom code start
 #define EEPROM_SIZE 150
 #include <EEPROM.h>
 int address = 100;
-int cycles = 1;
 
 typedef struct struct_message {
   uint8_t   eeprom_structure_version;
@@ -15,6 +14,7 @@ typedef struct struct_message {
   int32_t   offset_y;
 } struct_message;
 struct_message EEPROM_DATA;
+// eeprom code end 
 
 void setup() {
   Serial.begin(115200);
@@ -24,8 +24,6 @@ void setup() {
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(address, EEPROM_DATA);
   
-  Serial.print("Write cycles = ");
-
   Serial.print(" eeprom_structure_version = ");
   Serial.print(EEPROM_DATA.eeprom_structure_version);
   Serial.print(" reserved = ");
