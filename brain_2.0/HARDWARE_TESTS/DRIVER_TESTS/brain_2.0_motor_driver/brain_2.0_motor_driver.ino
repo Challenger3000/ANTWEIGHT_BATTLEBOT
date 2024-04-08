@@ -266,8 +266,8 @@ void loop() {
   Serial.println("FORWARD");
   Serial.println();
   // write_register_drv8908(OP_CTRL_2, C2_FORWARD);
-  drive_motor_A(FORWARD, 255);
-  drive_motor_B(FORWARD, 255);
+  drive_motor_A(FORWARD, 50);
+  drive_motor_B(FORWARD, 50);
   read_drv8908_status();
 
 
@@ -276,7 +276,7 @@ void loop() {
   Serial.println("BACKWARD");
   Serial.println();
   // write_register_drv8908(OP_CTRL_2, C2_BACKWARD);
-  drive_motor_A(BACKWARD, 255);
-  drive_motor_B(BACKWARD, 255);
+  drive_motor_A(BACKWARD, 50);
+  drive_motor_B(BACKWARD, 50);
   read_drv8908_status();
 }

@@ -1,7 +1,7 @@
 // general variables start
 
 uint8_t wireles_mode = 0; // 0 - esp_now signal receiver. 1 - wifi web server
-double Kp=0.06, Ki=0, Kd=0;
+double Kp=4.3, Ki=0, Kd=0.05;
 bool motors_on = true;
 bool new_rx_data = false;
 #define GIMBAL_STICK_DEADZONE 50
@@ -9,6 +9,28 @@ int motorA_output = 0;
 int motorB_output = 0;
 int motorC_output = 0;
 int motorD_output = 0;
+
+typedef struct struct_message {
+  uint8_t   mode;
+  uint8_t   id;
+  int32_t   x_axis;
+  int32_t   y_axis;
+  uint32_t  pot_1;
+  uint8_t   sw_1;
+  uint8_t   sw_2;
+  uint8_t   ch06;
+  uint8_t   ch07;
+  uint8_t   ch08;
+  uint8_t   ch09;
+  uint8_t   ch10;
+  uint8_t   ch11;
+  uint8_t   ch12;
+  uint8_t   ch13;
+  uint8_t   ch14;
+  uint8_t   ch15;
+  uint8_t   ch16;
+} struct_message;
+struct_message myData;
 
 // general variables end
 
@@ -234,6 +256,16 @@ struct_eeprom EEPROM_DATA;
 void init_eeprom(){  
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
+
+  if(EEPROM_DATA.eeprom_structure_version != 1){
+    EEPROM_DATA.eeprom_structure_version = 1;
+    EEPROM_DATA.PID_P = Kp;
+    EEPROM_DATA.PID_I = Ki;
+    EEPROM_DATA.PID_D = Kd;
+    EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+    EEPROM.commit();
+  }
+  
 }
 // eeprom code end 
 
@@ -350,6 +382,33 @@ void imu_print(){
 }
 // imu code end
 
+// filter code start
+#include "1euroFilter.h"
+
+static OneEuroFilter f; // not enabled yet, setup has to be called later
+
+// Frequency of your incoming noisy data
+// If you are able to provide timestamps, the frequency is automatically determined
+#define FREQUENCY   120   // [Hz] 
+#define MINCUTOFF   50.0   // [Hz] needs to be tuned according to your application
+#define BETA        10.0   // needs to be tuned according to your application
+
+unsigned long start_time;
+float filtered_signal;
+
+void update_filter(){
+  IMU.update();
+  IMU.getGyro(&gyroData);
+  float elapsed_time = 1E-6 * (micros() - start_time); // in seconds
+  filtered_signal = f.filter(gyroData.gyroZ, elapsed_time);
+}
+
+void init_filter(){
+  f.begin(FREQUENCY, MINCUTOFF, BETA);  
+  start_time = micros();
+}
+// filter code end
+
 // pid code start
 #include <PID_v1.h>
 #define PIN_INPUT 0
@@ -367,6 +426,7 @@ void init_pid(){
   myPID.SetMode(AUTOMATIC);
   myPID.SetOutputLimits(-2048,2048);
   myPID.SetTunings(EEPROM_DATA.PID_P,EEPROM_DATA.PID_I,EEPROM_DATA.PID_D);
+  myPID.SetSampleTime(1);
   Serial.print("EEPROM PID PARAMS P: ");
   Serial.print(EEPROM_DATA.PID_P);
   Serial.print("\tI: ");
@@ -377,15 +437,22 @@ void init_pid(){
 
 void update_pid(){
   
-  IMU.update();
-  IMU.getGyro(&gyroData);
+  // IMU.update();
+  // IMU.getGyro(&gyroData);
   
-  Input = (double)gyroData.gyroZ;
+  Input = (double)filtered_signal;
   myPID.Compute();
-  // Serial.print("yaw: ");
-  // Serial.print(gyroData.gyroZ);  
-  // Serial.print("\tpid_result: ");
-  // Serial.println(Output);
+
+  if(myData.sw_1 == 3){
+    Serial.print("set:");
+    Serial.print(Setpoint,3);
+    Serial.print(",filt:");
+    Serial.print(filtered_signal,3);
+    Serial.print(",raw_out:");
+    Serial.print(Output);
+    Serial.print(",core:");
+    Serial.println(xPortGetCoreID());
+  }
 
 }
 // pid code end
@@ -526,7 +593,7 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
           MOTOR_C2_STATE = C2_BREAK;
           break;
       }
-      write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
+      // write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
       if(motors_on){
@@ -534,7 +601,7 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
       }else{
         write_register_drv8908(PWM_DUTY_1, 0);
       }
-      write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
+      // write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
       break;
     case INDIVIDUAL_A_B_C_D:
     
@@ -571,15 +638,17 @@ void drive_motor_B(uint8_t new_state, uint8_t PWM){
           MOTOR_D2_STATE = D2_BREAK;
           break;
       }
-      write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
+      // write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
+      // write_register_drv8908(OP_CTRL_1, MOTOR_B1_STATE);
+      // write_register_drv8908(OP_CTRL_2, MOTOR_B2_STATE);
       if(motors_on){
         write_register_drv8908(PWM_DUTY_2, PWM);  // sets motor duty cycle
       }else{
         write_register_drv8908(PWM_DUTY_2, 0);
       }
-      write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
+      // write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
       break;
     case INDIVIDUAL_A_B_C_D:
       break;
@@ -597,10 +666,12 @@ void init_drv8908(uint8_t config){
   switch (config) {
   case PARALEL_AC_BD:
     // general settings for all motors
-    write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control    
+    write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
     write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
-    write_register_drv8908(PWM_FREQ_CTRL_1, 0b10101010);  // set pwm freq to 200hz for all motors (default: 80, runs rough)
-    write_register_drv8908(PWM_FREQ_CTRL_2, 0b10101010);  // 
+    write_register_drv8908(OLD_CTRL_3, 0b10000000);       // keep driving motors if open load is detected
+    
+    // write_register_drv8908(PWM_FREQ_CTRL_1, 0b10101010);  // set pwm freq to 200hz for all motors (default: 80, runs rough)
+    // write_register_drv8908(PWM_FREQ_CTRL_2, 0b10101010);  // 
     // write_register_drv8908(FW_CTRL_1, 0b11111111);     // enables active freewheeling (heats motors, runs rough, meh)
     write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
     // map PWM chanels to halfbridges
@@ -646,33 +717,16 @@ void read_drv8908_status(){
 uint8_t id = 1;
 unsigned long last_packet=0;
 
-typedef struct struct_message {
-  uint8_t   mode;
-  uint8_t   id;
-  int32_t   x_axis;
-  int32_t   y_axis;
-  uint32_t  pot_1;
-  uint8_t   sw_1;
-  uint8_t   sw_2;
-  uint8_t   ch06;
-  uint8_t   ch07;
-  uint8_t   ch08;
-  uint8_t   ch09;
-  uint8_t   ch10;
-  uint8_t   ch11;
-  uint8_t   ch12;
-  uint8_t   ch13;
-  uint8_t   ch14;
-  uint8_t   ch15;
-  uint8_t   ch16;
-} struct_message;
-struct_message myData;
-
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   last_packet = millis();
   new_rx_data = true;
-  // Setpoint = map(myData.ch02,0,255,-600,600);
+  int temp_setpoint = map(myData.x_axis,0,4095,600,-600);
+  if(temp_setpoint > 6 || temp_setpoint < -6){
+    Setpoint = temp_setpoint;
+  }else{
+    Setpoint = 0;
+  }
 
   // Serial.print(myData.x_axis);
   // Serial.print("\t");
@@ -693,7 +747,6 @@ void init_esp_now(){
   }
   esp_now_register_recv_cb(OnDataRecv);
 }
-// esp_now code end
 
 void switch_wireles_mode(){
   if(wireles_mode == 0){
@@ -718,6 +771,7 @@ void switch_wireles_mode(){
     led_color(0,10,0);
   }
 }
+// esp_now code end
 
 // gpio code start
 #define BUTTON 4
@@ -753,6 +807,43 @@ void init_servo(){
 }
 // servo code end
 
+
+// motor driver code start
+
+void drive_motors_forward_backward(){
+  // driving
+  if(motorA_output == 0){
+    drive_motor_A(COAST, 0);
+    // Serial.print("PWM_A: ");
+    // Serial.print(0);
+  }else if(motorA_output > 0){
+    drive_motor_A(FORWARD,  map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+    // Serial.print("PWM_A: ");
+    // Serial.print(map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+  }else if(motorA_output < 0){
+    drive_motor_A(BACKWARD, map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+    // Serial.print("PWM_A: ");
+    // Serial.print(map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+  }
+
+  if(motorB_output == 0){
+    drive_motor_B(COAST, 0);
+    // Serial.print("\tPWM_B: ");
+    // Serial.print(0);
+  }else if(motorB_output > 0){
+    drive_motor_B(BACKWARD,  map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+    // Serial.print("\tPWM_B: ");
+    // Serial.print(map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+  }else if(motorB_output < 0){
+    drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+    // Serial.print("\tPWM_B: ");
+    // Serial.print(map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+  }
+  // Serial.print("driver_status: ");
+  // read_drv8908_status();
+  myservo.write(map(myData.pot_1,0,4950,0,180));
+}
+
 void drive_motors(){
 
   // myData.ch01 -= round(Output);
@@ -766,7 +857,7 @@ void drive_motors(){
     // Serial.println("NO SIGNAL");
   }
 
-  if(new_rx_data){
+  if(myData.sw_1 == 1){ // need to run pid loop faster
     new_rx_data = false;
 
     // mixing 
@@ -787,74 +878,84 @@ void drive_motors(){
       motorA_output -= round(Output);
       motorB_output += round(Output);
     }
-
-    // driving
-    if(motorA_output == 0){
-      drive_motor_A(COAST, 0);
-      // Serial.print("PWM_A: ");
-      // Serial.print(0);
-    }else if(motorA_output > 0){
-      drive_motor_A(FORWARD,  map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-      // Serial.print("PWM_A: ");
-      // Serial.print(map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-    }else if(motorA_output < 0){
-      drive_motor_A(BACKWARD, map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-      // Serial.print("PWM_A: ");
-      // Serial.print(map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-    }
-
-    if(motorB_output == 0){
-      drive_motor_B(COAST, 0);
-      // Serial.print("\tPWM_B: ");
-      // Serial.print(0);
-    }else if(motorB_output > 0){
-      drive_motor_B(BACKWARD,  map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-      // Serial.print("\tPWM_B: ");
-      // Serial.print(map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-    }else if(motorB_output < 0){
-      drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-      // Serial.print("\tPWM_B: ");
-      // Serial.print(map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-    }
-    // Serial.print("driver_status: ");
-    // read_drv8908_status();
+    drive_motors_forward_backward();
   }
-  myservo.write(map(myData.pot_1,0,4950,0,180));
+
+  if(myData.sw_1 == 2){
+    new_rx_data = false;
+
+    // // mixing 
+    // if(myData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || myData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+    //   motorA_output = myData.y_axis-2048;
+    //   motorB_output = motorA_output;
+    // }else{
+    //   motorA_output = 0;
+    //   motorB_output = 0;
+    // }
+    
+    // if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || myData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+    //   motorA_output += (myData.x_axis-2048)/2;
+    //   motorB_output -= (myData.x_axis-2048)/2;      
+    // }
+    // drive_motors_forward_backward();
+    drive_motor_A(FORWARD, map( myData.x_axis,0 ,4096 ,0 ,255 ));
+    drive_motor_B(FORWARD, map( myData.y_axis,0 ,4096 ,0 ,255 ));
+    delay(20);
+    
+    Serial.print("PWM_A: ");
+    Serial.print(map( myData.x_axis,0 ,4096 ,0 ,255 ));
+    Serial.print(",PWM_B: ");
+    Serial.println(map( myData.y_axis,0 ,4096 ,0 ,255 ));
+  }
+
+  if(myData.sw_1 == 3){
+    drive_motor_A(COAST,0);
+    drive_motor_B(COAST,0);
+  }
+
+  // if(myData.sw_1 == 2){    
+  //   Serial.print("PWM_A: ");
+  //   Serial.print(map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+  //   Serial.print(",PWM_B: ");
+  //   Serial.println(map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+  // }
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(1000000);
   // while (!Serial) {
   //   ;
   // }
   delay(100);
   Serial.println("Starting...\n");
 
-  init_eeprom();
-  init_gpio();
-  led_init();
-  init_drv8908(MOTOR_LAYOUT);
-  init_imu();
-  init_pid();
   init_servo();
   if(wireles_mode == 0){
     init_esp_now();
   }else{
     init_WifiWebServer();
   }  
+  init_eeprom();
+  init_gpio();
+  led_init();
+  init_drv8908(MOTOR_LAYOUT);
+  init_imu();
+  update_filter();
+  init_pid();
 }
 
 void loop() {
-  // imu_print();
-  if(Serial){
-    double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
-    Serial.print("V_bat: ");
-    Serial.print(v_bat);
-    Serial.print("\tV_cell: ");
-    Serial.println(v_bat/3.0);
-  }
+  // // imu_print();
+  // if(Serial){
+  //   // double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
+  //   // Serial.print("V_bat: ");
+  //   // Serial.print(v_bat);
+  //   // Serial.print("\tV_cell: ");
+  //   // Serial.println(v_bat/3.0);
+  // }
+
   update_gpio();
+  update_filter();
   update_pid();
   drive_motors();
-
 }

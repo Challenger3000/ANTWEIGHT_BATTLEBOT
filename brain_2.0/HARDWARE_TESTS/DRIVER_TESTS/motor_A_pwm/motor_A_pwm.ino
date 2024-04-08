@@ -90,11 +90,12 @@ void init_drv8908(){
 
   write_register_drv8908(PWM_CTRL_1, 0b11111111);
   // write_register_drv8908(FW_CTRL_1, 0b11111111); // enables active freewheeling (heats motors meh)
-  write_register_drv8908(PWM_MAP_CTRL_2, 0b00001001);
-  write_register_drv8908(0x13, 0b10101010); // pwm freq to 200hz
+  // write_register_drv8908(PWM_MAP_CTRL_2, 0b00001001);
+  // write_register_drv8908(0x13, 0b10101010); // pwm freq to 200hz
   write_register_drv8908(0x16, 50); // duty cycle
   write_register_drv8908(0x20, 0b01000000); // keep driving motors if open load is detected
   write_register_drv8908(OP_CTRL_1, 0b01100000);
+  write_register_drv8908(OP_CTRL_2, 0b00000010);
   
   Serial.print("subsequent value: ");
   Serial.println(read_register_drv8908(OP_CTRL_1));
@@ -110,9 +111,9 @@ void init_drv8908(){
 
 void setup() {
   Serial.begin(115200);
-  while(!Serial){
-    delay(100);
-  }
+  // while(!Serial){
+  //   delay(100);
+  // }
 
   SPI.begin(SCK, MISO, MOSI, CHIP_SEL);
 
@@ -128,7 +129,7 @@ bool rampup = true;
 
 void loop() {
 
-  write_register_drv8908(0x16, motorA); // write pwm
+  write_register_drv8908(0x15, motorA); // write pwm
 
   if(rampup){
     motorA++;

@@ -185,6 +185,16 @@ uint8_t calculate_expo(int rc_in, float expo){
 
 }
 
+uint32_t calculate_expo_12_Bit(int rc_in, float expo){
+
+  float scaled_rc = ((float)rc_in/2047)-1;
+  scaled_rc = constrain(scaled_rc, -1.0, 1.0);
+  float expo_factor = scaled_rc * (1 - expo + (expo * scaled_rc * scaled_rc));
+  uint32_t expo_val = (uint32_t)((expo_factor+1)*2048.0);
+  return expo_val;
+
+}
+
 uint8_t get_switch_pos_1(){
   bool sw_pos_up = digitalRead(switch_1_up);
   bool sw_pos_down = digitalRead(switch_1_down);
@@ -215,9 +225,18 @@ uint8_t get_switch_pos_2(){
 
 void send_joysitck(){
 
+
+  calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095), 0.3);
+
   myData.mode   = 1;
   myData.id     = 1;
-  myData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
+  if(get_switch_pos_2()==1){
+    myData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.5);
+  }else if(get_switch_pos_2()==2){
+    myData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.25);
+  }else if(get_switch_pos_2()==3){
+    myData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
+  }
   myData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low ,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095);
   myData.pot_1  = analogRead(pot);
   myData.sw_1   = get_switch_pos_1();

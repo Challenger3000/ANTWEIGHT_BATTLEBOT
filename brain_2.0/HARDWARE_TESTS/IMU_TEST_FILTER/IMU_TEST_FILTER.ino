@@ -38,7 +38,6 @@ void init_filter(){
   f.begin(FREQUENCY, MINCUTOFF, BETA);  
   start_time = micros();
 }
-
 // filter code end
 
 
