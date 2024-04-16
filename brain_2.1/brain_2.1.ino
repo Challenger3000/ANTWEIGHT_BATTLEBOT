@@ -879,6 +879,17 @@ void drive_motors(){
       motorB_output += round(Output);
     }
     drive_motors_forward_backward();
+
+    
+    // Serial.print("x_axis: ");
+    // Serial.print(myData.x_axis);
+    // Serial.print("\ty_axis: ");
+    // Serial.print(myData.y_axis);
+
+    // Serial.print("\tmotorA_output: ");
+    // Serial.print(motorA_output);
+    // Serial.print("\tmotorB_output: ");
+    // Serial.println(motorB_output);
   }
 
   if(myData.sw_1 == 2){
@@ -938,10 +949,11 @@ void setup() {
   init_eeprom();
   init_gpio();
   led_init();
-  init_drv8908(MOTOR_LAYOUT);
   init_imu();
   update_filter();
   init_pid();
+  delay(50);
+  init_drv8908(MOTOR_LAYOUT);
 }
 
 void loop() {
