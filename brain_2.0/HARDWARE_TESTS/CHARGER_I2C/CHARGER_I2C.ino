@@ -17,12 +17,13 @@ void setup() {
 	I2C_16Bit_begin();
   Wire.begin( 6, 5 );
   
-	// I2C_8Bit_writeToModule(I2C_ADDR, 0x10,B00001000);
-	// I2C_8Bit_writeToModule(I2C_ADDR, 0x11,B00000010);
-	// I2C_16Bit_writeToModule(I2C_ADDR, 0x03,5);
-	// I2C_16Bit_writeToModule(I2C_ADDR, 0x01,900);
+	I2C_8Bit_writeToModule(I2C_ADDR, 0x10,B00001000);
+	I2C_8Bit_writeToModule(I2C_ADDR, 0xF,B01110000);
+	I2C_8Bit_writeToModule(I2C_ADDR, 0xA,B01100000); // 2s
+	I2C_16Bit_writeToModule(I2C_ADDR, 0x03,100);
+	I2C_16Bit_writeToModule(I2C_ADDR, 0x01,835);
   
-	// I2C_8Bit_writeToModule(I2C_ADDR, 0xF,B01110000);
+  
   
 }
 
@@ -108,7 +109,6 @@ void loop() {
   registerData = 0;
   registerData_2 = 0;
 
-
   registerData = I2C_8Bit_readFromModule(I2C_ADDR, 0x20);
 	Serial.print("FAIL STATUS 0: ");
 	Serial.println(registerData,BIN);
@@ -163,6 +163,24 @@ void loop() {
   registerData = 0;
   registerData_2 = 0;
 
+  registerData_2 = I2C_16Bit_readFromModule(I2C_ADDR, 0x1);
+	Serial.print("CHARGE_VOLTAGE: ");
+	Serial.println(registerData_2);
+  registerData = 0;
+  registerData_2 = 0;
+
+  registerData_2 = I2C_16Bit_readFromModule(I2C_ADDR, 0x3);
+	Serial.print("CHARGE_CURRENT: ");
+	Serial.println(registerData_2);
+  registerData = 0;
+  registerData_2 = 0;
+
+  registerData_2 = I2C_16Bit_readFromModule(I2C_ADDR, 0x3D);
+	Serial.print("vsys: ");
+	Serial.println(registerData_2);
+	Serial.println(registerData_2,BIN);
+  registerData = 0;
+  registerData_2 = 0;
 
 	delay(500);
 }
