@@ -16,15 +16,13 @@ void setup() {
 	I2C_8Bit_begin();
 	I2C_16Bit_begin();
   Wire.begin( 6, 5 );
-  
+
 	I2C_8Bit_writeToModule(I2C_ADDR, 0x10,B00001000);
 	I2C_8Bit_writeToModule(I2C_ADDR, 0xF,B01110000);
-	I2C_8Bit_writeToModule(I2C_ADDR, 0xA,B01100000); // 2s
+	I2C_8Bit_writeToModule(I2C_ADDR, 0xA,B01100000);  // 2s
+	I2C_16Bit_writeToModule(I2C_ADDR, 0x01,835);      // 2s
 	I2C_16Bit_writeToModule(I2C_ADDR, 0x03,100);
-	I2C_16Bit_writeToModule(I2C_ADDR, 0x01,835);
-  
-  
-  
+
 }
 
 
