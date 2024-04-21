@@ -1,3 +1,12 @@
+// general
+enum TX_STATES {
+  IDLE,
+  SENDING,
+  BINDING,
+};
+uint8_t state = SENDING;
+bool new_rx_data = false;
+
 // eeprom code start
 #define EEPROM_SIZE 200
 #define EEPROM_ADDRES 100
@@ -23,10 +32,12 @@ void init_eeprom(){
 // eeprom code end
 
 // esp now
+#include "esp_wifi.h"
 #include <esp_now.h>
 #include <WiFi.h>
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 unsigned long last_sendtime = 0;
+unsigned long last_receive=0;
 esp_now_peer_info_t peerInfo;
 
 // hardware pins
@@ -37,6 +48,11 @@ esp_now_peer_info_t peerInfo;
 #define switch_1_down 16
 #define switch_2_up   17
 #define switch_2_down 18
+
+// rf
+#define binding_ch 14
+uint8_t current_ch = 0;
+uint8_t sending_ch = 5;
 
 // variables
 typedef struct struct_message {
@@ -58,6 +74,7 @@ typedef struct struct_message {
   uint8_t   ch14;
   uint8_t   ch15;
   uint8_t   ch16;
+  char string[15];
 } struct_message;
 struct_message myData;
 int ch1_offset = 0;
@@ -65,6 +82,37 @@ int ch2_offset = 0;
 int motorA = 0;
 int motorB = 0;
 uint8_t expo_B = 0;
+
+// rssi
+typedef struct {
+  unsigned frame_ctrl: 16;
+  unsigned duration_id: 16;
+  uint8_t addr1[6]; /* receiver address */
+  uint8_t addr2[6]; /* sender address */
+  uint8_t addr3[6]; /* filtering address */
+  unsigned sequence_ctrl: 16;
+  uint8_t addr4[6]; /* optional */
+} wifi_ieee80211_mac_hdr_t;
+
+typedef struct {
+  wifi_ieee80211_mac_hdr_t hdr;
+  uint8_t payload[0]; /* network data ended with 4 bytes csum (CRC32) */
+} wifi_ieee80211_packet_t;
+
+int rssi_last;
+
+void promiscuous_rx_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
+  // All espnow traffic uses action frames which are a subtype of the mgmnt frames so filter out everything else.
+  if (type != WIFI_PKT_MGMT)
+    return;
+
+  const wifi_promiscuous_pkt_t *ppkt = (wifi_promiscuous_pkt_t *)buf;
+  const wifi_ieee80211_packet_t *ipkt = (wifi_ieee80211_packet_t *)ppkt->payload;
+  const wifi_ieee80211_mac_hdr_t *hdr = &ipkt->hdr;
+
+  int rssi = ppkt->rx_ctrl.rssi;
+  rssi_last = rssi;
+}
 
 void init_data_structures(){
   myData.mode   = 0;
@@ -87,8 +135,77 @@ void init_data_structures(){
   myData.ch16   = 0;
 }
 
+void binding(){
+  if(current_ch != binding_ch)change_channel(binding_ch);
+  if(millis()-last_sendtime > 50){
+    last_sendtime = millis();
+    myData.mode   = 42;
+    myData.id     = 42;
+    myData.x_axis = 42;
+    myData.y_axis = 42;
+    myData.pot_1  = 42;
+    myData.sw_1   = 42;
+    myData.sw_2   = 42;
+    myData.ch06   = 42;
+    myData.ch07   = 42;
+    myData.ch08   = 42;
+    myData.ch09   = 42;
+    myData.ch10   = 42;
+    myData.ch11   = 42;
+    myData.ch12   = 42;
+    myData.ch13   = 42;
+    myData.ch14   = 42;
+    myData.ch15   = 42;
+    myData.ch16   = 42;
+    Serial.println("SENDING BINDING");
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  }
+}
+
+void change_channel(uint8_t channel){
+  esp_wifi_set_channel(channel,WIFI_SECOND_CHAN_NONE);
+  current_ch = channel;
+}
+
+void printMAC(const uint8_t * mac_addr){
+  char macStr[18];
+  snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  Serial.println(macStr);
+}
+
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  last_receive = millis();
+  new_rx_data = true;
+  if(state == BINDING){
+    // if(myData.mode == 42){
+    //   state = SENDING;
+    //   change_channel(sending_ch);
+    // }
+  }
+
+  Serial.print("Packet received from: ");
+  printMAC(mac);  
+  Serial.print("RSSI: ");
+  Serial.println(rssi_last);
+
+  Serial.print("RECIEVED: ");
+  Serial.print(myData.x_axis);
+  Serial.print("\t");
+  Serial.print(myData.y_axis);
+  Serial.print("\t");
+  Serial.print(myData.pot_1);
+  Serial.print("\t");
+  Serial.print(myData.sw_1);
+  Serial.print("\t");
+  Serial.println(myData.sw_2);
+}
+
 void init_esp_now(){
   WiFi.mode(WIFI_STA);
+  
+  esp_wifi_set_channel(sending_ch,WIFI_SECOND_CHAN_NONE);
 
   // Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
@@ -98,7 +215,7 @@ void init_esp_now(){
   
   // Register peer
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
+  peerInfo.channel = binding_ch;  
   peerInfo.encrypt = false;
   
   // Add peer        
@@ -106,6 +223,18 @@ void init_esp_now(){
     Serial.println("Failed to add peer");
     return;
   }
+
+  if(state == BINDING){
+    esp_now_register_recv_cb(OnDataRecv);
+    change_channel(binding_ch);
+    esp_wifi_set_promiscuous(true);
+    esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
+  }else if(state == SENDING){
+    change_channel(sending_ch);    
+    esp_wifi_set_promiscuous(false);
+    esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);    
+    esp_now_register_recv_cb(OnDataRecv);    
+  }  
 }
 
 long mapWithMidpoint(long value, long fromLow, long fromMid, long fromHigh, long toLow, long toHigh) {
@@ -118,7 +247,6 @@ long mapWithMidpoint(long value, long fromLow, long fromMid, long fromHigh, long
     return map(value, fromMid, fromHigh, toHigh/2, toHigh);
   }
 }
-
 
 void calibrate_joystick(){
   Serial.println("Calibrating josystick midpoint...");
@@ -225,7 +353,6 @@ uint8_t get_switch_pos_2(){
 
 void send_joysitck(){
 
-
   calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095), 0.3);
 
   myData.mode   = 1;
@@ -266,6 +393,12 @@ void send_joysitck(){
   esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
 }
 
+void update_states(){
+  if(get_switch_pos_1()==3 && analogRead(pot) < 50){
+    state = BINDING;
+  }
+}
+
 void init_gpio(){
   pinMode(g_x, INPUT);
   pinMode(g_y, INPUT);
@@ -277,7 +410,9 @@ void init_gpio(){
   delay(150);
 }
 
-void setup() {
+void setup() {  
+  state = BINDING;
+  
   Serial.begin(115200);
   init_eeprom();
   init_gpio();
@@ -289,6 +424,7 @@ void setup() {
     ch1_offset = EEPROM_DATA.offset_x;
     ch2_offset = EEPROM_DATA.offset_y;
   }
+
   Serial.print(" eeprom_structure_version = ");
   Serial.println(EEPROM_DATA.eeprom_structure_version);
   Serial.print(" reserved = ");
@@ -311,11 +447,24 @@ void setup() {
 }
 
 void loop() {
-  send_joysitck();
+  // update_states();
+  switch (state) {
+    case SENDING:
+      if(millis()-last_sendtime > 20){
+        last_sendtime = millis();
+        send_joysitck();
+      }
+      break;
+
+    case BINDING:      
+      binding();
+      break;
+  }
+
+  
   // Serial.print(analogRead(g_x));
   // Serial.print("\t");
   // Serial.print(analogRead(g_y));
   // Serial.print("\t");
   // Serial.println(analogRead(pot));
-  delay(10);
 }

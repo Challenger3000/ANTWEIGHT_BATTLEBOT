@@ -715,11 +715,11 @@ void read_drv8908_status(){
 #include <WiFi.h>
 #include <esp_now.h>
 uint8_t id = 1;
-unsigned long last_packet=0;
+unsigned long last_receive=0;
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
-  last_packet = millis();
+  last_receive = millis();
   new_rx_data = true;
   int temp_setpoint = map(myData.x_axis,0,4095,600,-600);
   if(temp_setpoint > 6 || temp_setpoint < -6){
@@ -849,7 +849,7 @@ void drive_motors(){
   // myData.ch01 -= round(Output);
   // myData.ch02 += round(Output);
 
-  if((millis()-last_packet) > 100 ){   // if no packets for 100ms assume FS_RC
+  if((millis()-last_receive) > 100 ){   // if no packets for 100ms assume FS_RC
     drive_motor_A(COAST, 0);
     drive_motor_B(COAST, 0);
     return;

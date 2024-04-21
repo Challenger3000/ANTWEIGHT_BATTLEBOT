@@ -29,14 +29,7 @@ struct_message myData;
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   last_packet=millis();
-  
-  // Serial.print(myData.mode);
-  // Serial.print("\t");
-  // Serial.print(myData.id);
-  // Serial.print("\t");
-  // Serial.print(myData.ch01);
-  // Serial.print("\t");
-  // Serial.println(myData.ch02);
+
 }
 
 void init_esp_now(){
