@@ -35,7 +35,24 @@ void init_eeprom(){
 #include "esp_wifi.h"
 #include <esp_now.h>
 #include <WiFi.h>
+#define rssi_list_size 50
+#define binding_ch 14
+uint8_t current_ch = 0;
+uint8_t sending_ch = 5;
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+struct rssi_data {
+  uint8_t mac_address[6];
+  int rssi;
+  uint8_t received_packets;
+};
+rssi_data rssi_list[rssi_list_size] = {0};
+rssi_data rssi_receive_buffer[rssi_list_size] = {0};
+uint8_t rssi_list_index = 0;
+uint8_t rssi_receive_buffer_index = 0;
+uint8_t strongest_rssi_index = 0;
+
+unsigned long last_strongest_receive = 0;
 unsigned long last_sendtime = 0;
 unsigned long last_receive=0;
 esp_now_peer_info_t peerInfo;
@@ -48,11 +65,6 @@ esp_now_peer_info_t peerInfo;
 #define switch_1_down 16
 #define switch_2_up   17
 #define switch_2_down 18
-
-// rf
-#define binding_ch 14
-uint8_t current_ch = 0;
-uint8_t sending_ch = 5;
 
 // variables
 typedef struct struct_message {
@@ -135,9 +147,88 @@ void init_data_structures(){
   myData.ch16   = 0;
 }
 
+void print_rssi_list(){
+  for (int i = 0; i < rssi_list_index; i++) {
+    Serial.print("=======================");
+    Serial.print("INDEX: ");
+    Serial.println(i);
+    Serial.print("MAC: ");
+    print_MAC(rssi_list[i].mac_address);
+    Serial.print("RSSI: ");
+    Serial.println(rssi_list[i].rssi);
+    Serial.print("RECEIVED PACKETS: ");
+    Serial.println(rssi_list[i].received_packets);
+  }
+}
+
+unsigned long last_list_print = 0;
 void binding(){
   if(current_ch != binding_ch)change_channel(binding_ch);
-  if(millis()-last_sendtime > 50){
+  int strongest_rssi_index_local = 0;
+  int strongest_rssi_local = -200;
+  for (int i = 0; i < rssi_list_index; i++) {
+    if(rssi_list[i].rssi > -50 && rssi_list[i].rssi > strongest_rssi_local){
+      strongest_rssi_local = i;
+    }
+  }  
+  if(strongest_rssi_local != -200 && strongest_rssi_local != strongest_rssi_index){
+    strongest_rssi_index = strongest_rssi_local;
+    last_strongest_receive = millis();
+  }
+
+  if(millis()-last_strongest_receive > 1000 && rssi_list[strongest_rssi_index].received_packets > 10 && rssi_list[strongest_rssi_index].rssi > -50 ){
+    Serial.println("BINDING DONE");
+    Serial.print("STRONGEST RSSI INDEX: ");
+    Serial.println(strongest_rssi_index);
+    Serial.print("STRONGEST RSSI VALUE: ");
+    Serial.println(rssi_list[strongest_rssi_index].rssi);
+    Serial.print("MAC: ");
+    print_MAC(rssi_list[strongest_rssi_index].mac_address);    
+    Serial.print("  ");    
+    print_rssi_list();
+
+    myData.mode   = 43;
+    myData.id     = 43;
+    myData.x_axis = 43;
+    myData.y_axis = 43;
+    myData.pot_1  = 43;
+    myData.sw_1   = 43;
+    myData.sw_2   = 43;
+    myData.ch10   = 2;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    delay(100);
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    delay(100);
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    delay(100);
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+
+    sending_ch = 2;
+    change_channel(sending_ch);
+    Serial.println("binding confirmed");
+    memcpy(peerInfo.peer_addr, rssi_list[strongest_rssi_index].mac_address, 6);
+    peerInfo.channel = sending_ch;
+    peerInfo.encrypt = false;
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      Serial.println("Failed to add peer");
+      return;
+    }
+    Serial.print("Added: ");
+    print_MAC(peerInfo.peer_addr);
+    Serial.print("Channel: ");
+    Serial.println(peerInfo.channel);
+  
+    state = SENDING;
+    return;
+
+  }else if(millis()-last_list_print > 1000){
+    last_list_print = millis();
+    Serial.print("Time since last strongest receive: ");
+    Serial.println(millis() - last_strongest_receive);
+    print_rssi_list();
+  }
+
+  if(millis()-last_sendtime > 200){
     last_sendtime = millis();
     myData.mode   = 42;
     myData.id     = 42;
@@ -157,7 +248,7 @@ void binding(){
     myData.ch14   = 42;
     myData.ch15   = 42;
     myData.ch16   = 42;
-    Serial.println("SENDING BINDING");
+    // Serial.println("SENDING BINDING");
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
   }
 }
@@ -167,39 +258,94 @@ void change_channel(uint8_t channel){
   current_ch = channel;
 }
 
-void printMAC(const uint8_t * mac_addr){
+void print_MAC(const uint8_t * mac_addr){
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   Serial.println(macStr);
 }
 
+bool received_binding_packet(){
+  if(myData.mode == 42
+  && myData.id == 42
+  && myData.x_axis == 42
+  && myData.y_axis == 42
+  && myData.pot_1 == 42
+  && myData.sw_1 == 42
+  && myData.sw_2 == 42){
+    return true;
+  } else {
+    return false;
+  }  
+}
+
+int findMacAddress(const uint8_t* mac_address) {
+  for (int i = 0; i < rssi_list_index; i++) {
+    if (memcmp(rssi_list[i].mac_address, mac_address, sizeof(rssi_list[i].mac_address)) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   last_receive = millis();
-  new_rx_data = true;
+  
   if(state == BINDING){
-    // if(myData.mode == 42){
-    //   state = SENDING;
-    //   change_channel(sending_ch);
-    // }
+    if(received_binding_packet()){
+      int index = findMacAddress(mac);
+      
+      if(index == -1){
+        if(rssi_list_index < rssi_list_size){
+          for (int i = 0; i < 6; i++) {
+            rssi_list[rssi_list_index].mac_address[i] = mac[i];
+          }
+          // memcpy(rssi_list[rssi_list_index].mac_address, mac, sizeof(mac));
+          rssi_list[rssi_list_index].rssi = rssi_last;
+          rssi_list[rssi_list_index].received_packets = 1;
+          rssi_list_index++;
+        }else{
+          Serial.println("RSSI LIST FULL");
+          while (true)
+          {
+            delay(1000);
+          }
+          
+        }
+      }else{
+        for (int i = 0; i < 6; i++) {
+          rssi_list[index].mac_address[i] = mac[i];
+        }
+        rssi_list[index].rssi = rssi_last;
+        rssi_list[index].received_packets++;
+      }
+      // Serial.print("Binding packet received from: ");
+      // print_MAC(mac);
+      // Serial.print("RSSI: ");
+      // Serial.println(rssi_last);
+      // Serial.print("Index: ");
+      // Serial.println(index);
+      // Serial.print("Mac for index: ");
+      // print_MAC(rssi_list[index].mac_address);
+      // Serial.print("Received packets: ");
+      // Serial.println(rssi_list[index].received_packets);
+    }
+  }else if(state == SENDING){
+    new_rx_data = true;
   }
 
-  Serial.print("Packet received from: ");
-  printMAC(mac);  
-  Serial.print("RSSI: ");
-  Serial.println(rssi_last);
-
-  Serial.print("RECIEVED: ");
-  Serial.print(myData.x_axis);
-  Serial.print("\t");
-  Serial.print(myData.y_axis);
-  Serial.print("\t");
-  Serial.print(myData.pot_1);
-  Serial.print("\t");
-  Serial.print(myData.sw_1);
-  Serial.print("\t");
-  Serial.println(myData.sw_2);
+  // Serial.print("RECIEVED: ");
+  // Serial.print(myData.x_axis);
+  // Serial.print("\t");
+  // Serial.print(myData.y_axis);
+  // Serial.print("\t");
+  // Serial.print(myData.pot_1);
+  // Serial.print("\t");
+  // Serial.print(myData.sw_1);
+  // Serial.print("\t");
+  // Serial.println(myData.sw_2);
+  
 }
 
 void init_esp_now(){
@@ -234,7 +380,7 @@ void init_esp_now(){
     esp_wifi_set_promiscuous(false);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);    
     esp_now_register_recv_cb(OnDataRecv);    
-  }  
+  }
 }
 
 long mapWithMidpoint(long value, long fromLow, long fromMid, long fromHigh, long toLow, long toHigh) {
@@ -390,7 +536,8 @@ void send_joysitck(){
   // Serial.print("\t");
   // Serial.println(myData.sw_2);
 
-  esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  // esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  esp_now_send(rssi_list[strongest_rssi_index].mac_address, (uint8_t *) &myData, sizeof(myData));
 }
 
 void update_states(){
@@ -412,7 +559,7 @@ void init_gpio(){
 
 void setup() {  
   state = BINDING;
-  
+
   Serial.begin(115200);
   init_eeprom();
   init_gpio();
@@ -450,7 +597,7 @@ void loop() {
   // update_states();
   switch (state) {
     case SENDING:
-      if(millis()-last_sendtime > 20){
+      if(millis()-last_sendtime > 50){
         last_sendtime = millis();
         send_joysitck();
       }

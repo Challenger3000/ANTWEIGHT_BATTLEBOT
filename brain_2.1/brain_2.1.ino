@@ -29,6 +29,7 @@ typedef struct struct_message {
   uint8_t   ch14;
   uint8_t   ch15;
   uint8_t   ch16;
+  char string[15];
 } struct_message;
 struct_message myData;
 
@@ -711,13 +712,123 @@ void read_drv8908_status(){
 }
 // motor driver code end
 
-// esp_now reciever 
+// esp_now reciever
+#include "esp_wifi.h"
 #include <WiFi.h>
 #include <esp_now.h>
+#define binding_ch 14
+uint8_t current_ch = 0;
+uint8_t sending_ch = 5;
 uint8_t id = 1;
 unsigned long last_receive=0;
+bool binding_mode = false;
+unsigned long last_sendtime = 0;
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+esp_now_peer_info_t peerInfo;
+
+void change_channel(uint8_t channel){
+  esp_wifi_set_channel(channel,WIFI_SECOND_CHAN_NONE);
+  current_ch = channel;
+}
+
+void printMAC(const uint8_t * mac_addr){
+  char macStr[18];
+  snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  Serial.println(macStr);
+}
+
+bool binding(){
+  if(!binding_mode){return true;}
+  if(current_ch != binding_ch)change_channel(binding_ch);
+
+  if(millis()-last_sendtime > 200){
+    last_sendtime = millis();
+    myData.mode   = 42;
+    myData.id     = 42;
+    myData.x_axis = 42;
+    myData.y_axis = 42;
+    myData.pot_1  = 42;
+    myData.sw_1   = 42;
+    myData.sw_2   = 42;
+    myData.ch06   = 42;
+    myData.ch07   = 42;
+    myData.ch08   = 42;
+    myData.ch09   = 42;
+    myData.ch10   = 42;
+    myData.ch11   = 42;
+    myData.ch12   = 42;
+    myData.ch13   = 42;
+    myData.ch14   = 42;
+    myData.ch15   = 42;
+    myData.ch16   = 42;
+    // Serial.println("sending binding");
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  }
+  return false;
+}
+
+bool received_binding_confirmed_packet(){
+  if(myData.mode    == 43
+  && myData.id      == 43
+  && myData.x_axis  == 43
+  && myData.y_axis  == 43
+  && myData.pot_1   == 43
+  && myData.sw_1    == 43
+  && myData.sw_2    == 43){
+    return true;
+  } else {
+    return false;
+  }  
+}
+
+void print_MAC(const uint8_t * mac_addr){
+  char macStr[18];
+  snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  Serial.println(macStr);
+}
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  if(true){
+    Serial.print("Packet Recved from: ");
+    print_MAC(mac);
+    memcpy(&myData, incomingData, sizeof(myData));
+    Serial.print("mode: ");
+    Serial.print(myData.mode);
+    Serial.print("\tid: ");
+    Serial.print(myData.id);
+    Serial.print("\tx_axis: ");
+    Serial.print(myData.x_axis);
+    Serial.print("\ty_axis: ");
+    Serial.print(myData.y_axis);
+    Serial.print("\tpot_1: ");
+    Serial.print(myData.pot_1);
+    Serial.print("\tsw_1: ");
+    Serial.print(myData.sw_1);
+    Serial.println("\tsw_2: ");
+  
+    if(received_binding_confirmed_packet()){
+      binding_mode = false;
+      sending_ch = myData.ch10;
+      change_channel(sending_ch);
+      memcpy(peerInfo.peer_addr, mac, 6);
+      peerInfo.channel = sending_ch;  
+      peerInfo.encrypt = false;
+      if (esp_now_add_peer(&peerInfo) != ESP_OK){
+        Serial.println("Failed to add peer");
+        return;
+      }
+      Serial.println("binding confirmed, Added: ");
+      print_MAC(peerInfo.peer_addr);
+      Serial.print("Channel: ");
+      Serial.println(peerInfo.channel);
+      return;
+    }
+    // recieved binding confirmed packet, set password/channel
+    // add pear to list
+    return;
+  }
   memcpy(&myData, incomingData, sizeof(myData));
   last_receive = millis();
   new_rx_data = true;
@@ -744,6 +855,24 @@ void init_esp_now(){
   if (esp_now_init() != 0) {
     Serial.println("Error initializing ESP-NOW");
     return;
+  }
+  // Register peer
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = binding_ch;  
+  peerInfo.encrypt = false;
+  
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  Serial.println("added peer");
+
+  if(true){
+    change_channel(binding_ch);
+    Serial.println("setting binding channel");
+  }else{
+    change_channel(sending_ch);
   }
   esp_now_register_recv_cb(OnDataRecv);
 }
@@ -932,12 +1061,13 @@ void drive_motors(){
   // }
 }
 
-void setup() {
+void setup() {  
   Serial.begin(1000000);
   // while (!Serial) {
   //   ;
   // }
-  delay(100);
+
+  // delay(100);
   Serial.println("Starting...\n");
 
   init_servo();
@@ -945,7 +1075,15 @@ void setup() {
     init_esp_now();
   }else{
     init_WifiWebServer();
-  }  
+  }
+
+  if(!digitalRead(BUTTON)){
+    binding_mode = true;
+    while(!binding()){
+      ;
+    }
+  }
+
   init_eeprom();
   init_gpio();
   led_init();
