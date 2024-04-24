@@ -22,6 +22,10 @@ typedef struct struct_eeprom {
   int32_t   calib_y_high;
   int32_t   offset_x;
   int32_t   offset_y;
+  uint8_t   binding_status;
+  uint8_t   bound_ch;
+  uint8_t   bound_mac[6];
+  char      encryption_key[16];
 } struct_eeprom;
 struct_eeprom EEPROM_DATA;
 
@@ -40,6 +44,7 @@ void init_eeprom(){
 uint8_t current_ch = 0;
 uint8_t sending_ch = 5;
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+char pmk_key_str[16];
 
 struct rssi_data {
   uint8_t mac_address[6];
@@ -86,7 +91,7 @@ typedef struct struct_message {
   uint8_t   ch14;
   uint8_t   ch15;
   uint8_t   ch16;
-  char string[15];
+  char string[16];
 } struct_message;
 struct_message myData;
 int ch1_offset = 0;
@@ -187,6 +192,21 @@ void binding(){
     Serial.print("  ");    
     print_rssi_list();
 
+    randomSeed((unsigned long)esp_random());
+    pmk_key_str[0] = '\0';  
+    Serial.println("Generating a random 16-byte PMK:");
+
+    // Append each random byte as a two-character hex value to the string
+    for (int i = 0; i < 16; i++) {
+      uint8_t randomByte = random(0, 256);  // Generate a random byte
+      pmk_key_str[i] = randomByte;  // Format byte as hex and append
+    }
+
+    // Print the PMK in the format of a C string constant
+    // Serial.print("static const char* PMK_KEY_STR = ");
+    // Serial.print(pmk_key_str);
+    // Serial.println();
+
     myData.mode   = 43;
     myData.id     = 43;
     myData.x_axis = 43;
@@ -195,6 +215,26 @@ void binding(){
     myData.sw_1   = 43;
     myData.sw_2   = 43;
     myData.ch10   = 2;
+    strcpy(myData.string, pmk_key_str);
+
+
+    Serial.print("Password: ");
+    for (int i = 0; i < 16; i++) {
+      Serial.print("0x");
+      Serial.print((byte)myData.string[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+    
+    // Copy key binding status, 1 channel, and receiver mac into EEPROM
+    EEPROM_DATA.binding_status = 1;
+    EEPROM_DATA.bound_ch = sending_ch;
+    memcpy(EEPROM_DATA.bound_mac, rssi_list[strongest_rssi_index].mac_address, sizeof(EEPROM_DATA.bound_mac));
+
+    // Save the updated EEPROM data
+    EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+    EEPROM.commit();
+
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     delay(100);
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
@@ -202,13 +242,15 @@ void binding(){
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     delay(100);
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_wifi_set_promiscuous(false);
 
     sending_ch = 2;
     change_channel(sending_ch);
     Serial.println("binding confirmed");
     memcpy(peerInfo.peer_addr, rssi_list[strongest_rssi_index].mac_address, 6);
     peerInfo.channel = sending_ch;
-    peerInfo.encrypt = false;
+    peerInfo.encrypt = true;
+    memcpy(peerInfo.lmk, myData.string, 16);
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
       Serial.println("Failed to add peer");
       return;
@@ -358,24 +400,24 @@ void init_esp_now(){
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-  
-  // Register peer
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = binding_ch;  
-  peerInfo.encrypt = false;
-  
-  // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-  }
 
   if(state == BINDING){
+    Serial.println("Binding mode");
+    // Register binding peer
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = binding_ch;  
+    peerInfo.encrypt = false;    
+    // Add peer        
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      Serial.println("Failed to add peer");
+      return;
+    }
     esp_now_register_recv_cb(OnDataRecv);
     change_channel(binding_ch);
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
   }else if(state == SENDING){
+    Serial.println("Sending mode");
     change_channel(sending_ch);    
     esp_wifi_set_promiscuous(false);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);    
@@ -558,11 +600,28 @@ void init_gpio(){
 }
 
 void setup() {  
-  state = BINDING;
 
   Serial.begin(115200);
   init_eeprom();
   init_gpio();
+
+  // Check if joystick x and y are below 100 on both analog reads
+  if (analogRead(g_x) < 1000 && analogRead(g_y) < 1000) {
+    state = BINDING;
+  } else {    
+    Serial.print("analog reads: ");
+    Serial.print(analogRead(g_x));
+    Serial.print(" ");
+    Serial.println(analogRead(g_y));
+
+    // Check if binding status in eeprom is equal to 1
+    if (EEPROM_DATA.binding_status == 1) {
+      state = SENDING;
+    } else {
+      state = BINDING;
+    }
+  }
+
   init_data_structures();
   init_esp_now();
   if(EEPROM_DATA.need_to_calibrate){
@@ -607,11 +666,4 @@ void loop() {
       binding();
       break;
   }
-
-  
-  // Serial.print(analogRead(g_x));
-  // Serial.print("\t");
-  // Serial.print(analogRead(g_y));
-  // Serial.print("\t");
-  // Serial.println(analogRead(pot));
 }

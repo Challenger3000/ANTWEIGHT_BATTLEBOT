@@ -29,7 +29,7 @@ typedef struct struct_message {
   uint8_t   ch14;
   uint8_t   ch15;
   uint8_t   ch16;
-  char string[15];
+  char string[16];
 } struct_message;
 struct_message myData;
 
@@ -251,6 +251,10 @@ typedef struct struct_eeprom {
   double    PID_P;
   double    PID_I;
   double    PID_D;
+  uint8_t   binding_status;
+  uint8_t   bound_ch;
+  uint8_t   bound_mac[6];
+  char      encryption_key[16];
 } struct_eeprom;
 struct_eeprom EEPROM_DATA;
 
@@ -717,8 +721,9 @@ void read_drv8908_status(){
 #include <WiFi.h>
 #include <esp_now.h>
 #define binding_ch 14
+bool esp_now_is_init = false;
 uint8_t current_ch = 0;
-uint8_t sending_ch = 5;
+uint8_t sending_ch = 2;
 uint8_t id = 1;
 unsigned long last_receive=0;
 bool binding_mode = false;
@@ -790,7 +795,7 @@ void print_MAC(const uint8_t * mac_addr){
 }
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  if(true){
+  if(binding_mode){
     Serial.print("Packet Recved from: ");
     print_MAC(mac);
     memcpy(&myData, incomingData, sizeof(myData));
@@ -814,7 +819,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       change_channel(sending_ch);
       memcpy(peerInfo.peer_addr, mac, 6);
       peerInfo.channel = sending_ch;  
-      peerInfo.encrypt = false;
+      peerInfo.encrypt = true;      
+      memcpy(peerInfo.lmk, myData.string, 16);
       if (esp_now_add_peer(&peerInfo) != ESP_OK){
         Serial.println("Failed to add peer");
         return;
@@ -823,6 +829,23 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       print_MAC(peerInfo.peer_addr);
       Serial.print("Channel: ");
       Serial.println(peerInfo.channel);
+
+      Serial.print("Password: ");
+      for (int i = 0; i < 16; i++) {
+        Serial.print("0x");
+        Serial.print((byte)myData.string[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println();
+
+      // Copy key binding status, 1 channel, and receiver mac into EEPROM
+      EEPROM_DATA.binding_status = 1;
+      EEPROM_DATA.bound_ch = sending_ch;
+      memcpy(EEPROM_DATA.bound_mac, peerInfo.peer_addr, sizeof(EEPROM_DATA.bound_mac));
+
+      // Save the updated EEPROM data
+      EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+      EEPROM.commit();
       return;
     }
     // recieved binding confirmed packet, set password/channel
@@ -856,19 +879,17 @@ void init_esp_now(){
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-  // Register peer
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = binding_ch;  
-  peerInfo.encrypt = false;
-  
-  // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-  }
-  Serial.println("added peer");
 
-  if(true){
+  if(binding_mode){
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = binding_ch;  
+    peerInfo.encrypt = false;
+
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      Serial.println("Failed to add peer");
+      return;
+    }
+    Serial.println("added peer");
     change_channel(binding_ch);
     Serial.println("setting binding channel");
   }else{
@@ -1063,32 +1084,47 @@ void drive_motors(){
 
 void setup() {  
   Serial.begin(1000000);
-  // while (!Serial) {
-  //   ;
-  // }
-
-  // delay(100);
   Serial.println("Starting...\n");
 
-  init_servo();
-  if(wireles_mode == 0){
-    init_esp_now();
-  }else{
-    init_WifiWebServer();
-  }
+  init_gpio();
+  init_eeprom();
+  led_init();
+
 
   if(!digitalRead(BUTTON)){
     binding_mode = true;
+    init_esp_now();
     while(!binding()){
       ;
     }
+  }else{
+    if(EEPROM_DATA.binding_status == 1){
+      memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
+      peerInfo.channel = EEPROM_DATA.bound_ch;
+      peerInfo.encrypt = true;
+      memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
+      if (esp_now_add_peer(&peerInfo) != ESP_OK){
+        Serial.println("Failed to add peer");
+        return;
+      }
+      Serial.println("binding confirmed, Added: ");
+      print_MAC(peerInfo.peer_addr);
+      Serial.print("Channel: ");
+      Serial.println(peerInfo.channel);
+      change_channel(peerInfo.channel);
+      esp_now_register_recv_cb(OnDataRecv);
+      esp_now_is_init = true;
+      if(wireles_mode == 0){
+        init_esp_now();
+      }else{
+        init_WifiWebServer();
+      }
+    }
   }
 
-  init_eeprom();
-  init_gpio();
-  led_init();
+  init_servo();
   init_imu();
-  update_filter();
+  init_filter();
   init_pid();
   delay(50);
   init_drv8908(MOTOR_LAYOUT);
