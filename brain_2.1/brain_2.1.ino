@@ -858,18 +858,18 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
         Serial.println("Failed to add peer");
         return;
       }
-      Serial.println("binding confirmed, Added: ");
-      print_MAC(peerInfo.peer_addr);
-      Serial.print("Channel: ");
-      Serial.println(peerInfo.channel);
+      // Serial.println("binding confirmed, Added: ");
+      // print_MAC(peerInfo.peer_addr);
+      // Serial.print("Channel: ");
+      // Serial.println(peerInfo.channel);
 
-      Serial.print("Password: ");
-      for (int i = 0; i < 16; i++) {
-        Serial.print("0x");
-        Serial.print((byte)myData.string[i], HEX);
-        Serial.print(" ");
-      }
-      Serial.println();
+      // Serial.print("Password: ");
+      // for (int i = 0; i < 16; i++) {
+      //   Serial.print("0x");
+      //   Serial.print((byte)myData.string[i], HEX);
+      //   Serial.print(" ");
+      // }
+      // Serial.println();
 
       // Copy key binding status, 1 channel, and receiver mac into EEPROM
       EEPROM_DATA.binding_status = 1;
@@ -886,7 +886,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // add pear to list
     return;
   }
-  return;
   memcpy(&myData, incomingData, sizeof(myData));
   last_receive = millis();
   new_rx_data = true;
@@ -928,8 +927,28 @@ void init_esp_now(){
     change_channel(binding_ch);
     Serial.println("setting binding channel");
   }else{
+		
+		Serial.print("\n\n\nPEER INFO FROM EEPROM:");
+		Serial.print("Peer MAC Address: ");
+		print_MAC(peerInfo.peer_addr);
+		Serial.print("Channel: ");
+		Serial.println(peerInfo.channel);
+		Serial.print("Encryption: ");
+		Serial.println(peerInfo.encrypt ? "Enabled" : "Disabled");
+		Serial.print("Password as hex: ");
+		for (int i = 0; i < 16; i++) {
+			Serial.print(peerInfo.lmk[i], HEX);
+			Serial.print(" ");
+		}
+		Serial.println();
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      Serial.println("Failed to add peer");
+      return;
+    }
     change_channel(sending_ch);
   }
+  
+  Serial.print("WWWWTTTTFFFFFF:");
   esp_now_register_recv_cb(OnDataRecv);
 }
 
@@ -1161,12 +1180,27 @@ void setup() {
   }else{
     // delay(1000);
     if(EEPROM_DATA.binding_status == 1){
-			for (int i = 0; i < 6; i++) {
-				peerInfo.peer_addr[i] = EEPROM_DATA.bound_mac[i];
-			}
-      peerInfo.channel = EEPROM_DATA.bound_ch;
-      peerInfo.encrypt = true;
+
+
+      memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
+      peerInfo.channel = EEPROM_DATA.bound_ch;  
+      peerInfo.encrypt = true;      
       memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
+			
+    	init_esp_now();
+
+      // if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      //   Serial.println("Failed to add peer");
+      //   return;
+      // }
+
+			// for (int i = 0; i < 6; i++) {
+			// 	peerInfo.peer_addr[i] = EEPROM_DATA.bound_mac[i];
+			// }
+      // peerInfo.channel = EEPROM_DATA.bound_ch;
+      // peerInfo.encrypt = true;
+      // memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
+      
     }
   }
         // delay(1000);
