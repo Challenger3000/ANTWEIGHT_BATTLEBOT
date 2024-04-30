@@ -262,6 +262,39 @@ void init_eeprom(){
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
 
+	Serial.println();
+	Serial.println();
+	Serial.print("EEPROM PID PARAMS P: ");
+	Serial.println(EEPROM_DATA.PID_P);
+	Serial.print("EEPROM PID PARAMS I: ");
+	Serial.println(EEPROM_DATA.PID_I);
+	Serial.print("EEPROM PID PARAMS D: ");
+	Serial.println(EEPROM_DATA.PID_D);
+	Serial.print("EEPROM Binding Status: ");
+	Serial.println(EEPROM_DATA.binding_status);
+	Serial.print("EEPROM Bound Channel: ");
+	Serial.println(EEPROM_DATA.bound_ch);
+	Serial.print("EEPROM Bound MAC Address: ");
+	for (int i = 0; i < 6; i++) {
+			Serial.print(EEPROM_DATA.bound_mac[i], HEX);
+			if (i < 5) {
+					Serial.print(":");
+			}
+	}
+	Serial.println();
+	Serial.print("EEPROM Encryption Key Size: ");
+	Serial.println(sizeof(EEPROM_DATA.encryption_key));
+	Serial.print("EEPROM Encryption Key: ");
+	for (int i = 0; i < 16; i++) {
+		Serial.print(EEPROM_DATA.encryption_key[i], HEX);
+		if (i < 15) {
+			Serial.print(":");
+		}
+	}
+	Serial.println();
+	Serial.println();
+	Serial.println();
+
   if(EEPROM_DATA.eeprom_structure_version != 1){
     EEPROM_DATA.eeprom_structure_version = 1;
     EEPROM_DATA.PID_P = Kp;
@@ -718,7 +751,7 @@ void read_drv8908_status(){
 
 // esp_now reciever
 #include "esp_wifi.h"
-#include <WiFi.h>
+// #include <WiFi.h>
 #include <esp_now.h>
 #define binding_ch 14
 bool esp_now_is_init = false;
@@ -842,6 +875,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       EEPROM_DATA.binding_status = 1;
       EEPROM_DATA.bound_ch = sending_ch;
       memcpy(EEPROM_DATA.bound_mac, peerInfo.peer_addr, sizeof(EEPROM_DATA.bound_mac));
+			memcpy(EEPROM_DATA.encryption_key, myData.string, sizeof(EEPROM_DATA.encryption_key));
 
       // Save the updated EEPROM data
       EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
@@ -852,6 +886,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // add pear to list
     return;
   }
+  return;
   memcpy(&myData, incomingData, sizeof(myData));
   last_receive = millis();
   new_rx_data = true;
@@ -862,15 +897,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     Setpoint = 0;
   }
 
-  // Serial.print(myData.x_axis);
-  // Serial.print("\t");
-  // Serial.print(myData.y_axis);
-  // Serial.print("\t");
-  // Serial.print(myData.pot_1);
-  // Serial.print("\t");
-  // Serial.print(myData.sw_1);
-  // Serial.print("\t");
-  // Serial.println(myData.sw_2);
+  Serial.print(myData.x_axis);
+  Serial.print("\t");
+  Serial.print(myData.y_axis);
+  Serial.print("\t");
+  Serial.print(myData.pot_1);
+  Serial.print("\t");
+  Serial.print(myData.sw_1);
+  Serial.print("\t");
+  Serial.println(myData.sw_2);
 }
 
 void init_esp_now(){
@@ -899,27 +934,49 @@ void init_esp_now(){
 }
 
 void switch_wireles_mode(){
-  if(wireles_mode == 0){
-    wireles_mode = 1;
-    esp_now_deinit();
-    init_WifiWebServer();
-    led_color(10,0,10);
-    
-    drive_motor_A(COAST, 0);
-    drive_motor_B(COAST, 0);
-  }else{
-    wireles_mode = 0;
-    server.end();
-    init_esp_now();
-    myPID.SetTunings(Kp,Ki,Kd);
+  
+  	Serial.println("Peer Info:");
+	Serial.print("Peer MAC Address: ");
+	print_MAC(peerInfo.peer_addr);
+	Serial.print("Peer channel: ");
+	Serial.println(peerInfo.channel);
+	Serial.print("Encryption: ");
+	Serial.println(peerInfo.encrypt ? "Enabled" : "Disabled");
+	Serial.print("Encryption Key: ");
+	for (int i = 0; i < 16; i++) {
+		Serial.print(peerInfo.lmk[i], HEX);
+		Serial.print(" ");
+	}
+	Serial.println();
 
-    EEPROM_DATA.PID_P = Kp;
-    EEPROM_DATA.PID_I = Ki;
-    EEPROM_DATA.PID_D = Kd;
-    EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
-    EEPROM.commit();
-    led_color(0,10,0);
-  }
+	Serial.println("Current channel: ");
+	Serial.println(current_ch);
+	Serial.println("Sending channel: ");
+	Serial.println(sending_ch);
+	Serial.println("Binding mode: ");
+	Serial.println(binding_mode);
+
+  // if(wireles_mode == 0){
+  //   wireles_mode = 1;
+  //   esp_now_deinit();
+  //   init_WifiWebServer();
+  //   led_color(10,0,10);
+    
+  //   drive_motor_A(COAST, 0);
+  //   drive_motor_B(COAST, 0);
+  // }else{
+  //   wireles_mode = 0;
+  //   server.end();
+  //   init_esp_now();
+  //   myPID.SetTunings(Kp,Ki,Kd);
+
+  //   EEPROM_DATA.PID_P = Kp;
+  //   EEPROM_DATA.PID_I = Ki;
+  //   EEPROM_DATA.PID_D = Kd;
+  //   EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+  //   EEPROM.commit();
+  //   led_color(0,10,0);
+  // }
 }
 // esp_now code end
 
@@ -1083,9 +1140,13 @@ void drive_motors(){
 }
 
 void setup() {  
-  Serial.begin(1000000);
+  Serial.begin(115200);
   Serial.println("Starting...\n");
 
+  while(!Serial){
+    ;
+  }
+  
   init_gpio();
   init_eeprom();
   led_init();
@@ -1098,39 +1159,32 @@ void setup() {
       ;
     }
   }else{
+    // delay(1000);
     if(EEPROM_DATA.binding_status == 1){
-      memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
+			for (int i = 0; i < 6; i++) {
+				peerInfo.peer_addr[i] = EEPROM_DATA.bound_mac[i];
+			}
       peerInfo.channel = EEPROM_DATA.bound_ch;
       peerInfo.encrypt = true;
       memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
-      if (esp_now_add_peer(&peerInfo) != ESP_OK){
-        Serial.println("Failed to add peer");
-        return;
-      }
-      Serial.println("binding confirmed, Added: ");
-      print_MAC(peerInfo.peer_addr);
-      Serial.print("Channel: ");
-      Serial.println(peerInfo.channel);
-      change_channel(peerInfo.channel);
-      esp_now_register_recv_cb(OnDataRecv);
-      esp_now_is_init = true;
-      if(wireles_mode == 0){
-        init_esp_now();
-      }else{
-        init_WifiWebServer();
-      }
     }
   }
+        // delay(1000);
 
+  init_pid();
   init_servo();
   init_imu();
   init_filter();
-  init_pid();
   delay(50);
   init_drv8908(MOTOR_LAYOUT);
 }
 
 void loop() {
+
+  if(binding_mode == 0){
+		change_channel(sending_ch);
+	}
+
   // // imu_print();
   // if(Serial){
   //   // double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
