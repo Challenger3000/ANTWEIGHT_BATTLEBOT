@@ -32,6 +32,29 @@ struct_eeprom EEPROM_DATA;
 void init_eeprom(){  
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
+	Serial.println();
+	Serial.print("EEPROM Binding Status: ");
+	Serial.println(EEPROM_DATA.binding_status);
+	Serial.print("EEPROM Bound Channel: ");
+	Serial.println(EEPROM_DATA.bound_ch);
+	Serial.print("EEPROM Bound MAC Address: ");
+	for (int i = 0; i < 6; i++) {
+			Serial.print(EEPROM_DATA.bound_mac[i], HEX);
+			if (i < 5) {
+					Serial.print(":");
+			}
+	}
+	Serial.println();
+	Serial.print("EEPROM Encryption Key Size: ");
+	Serial.println(sizeof(EEPROM_DATA.encryption_key));
+	Serial.print("EEPROM Encryption Key: ");
+	for (int i = 0; i < 16; i++) {
+		Serial.print(EEPROM_DATA.encryption_key[i], HEX);
+		if (i < 15) {
+			Serial.print(":");
+		}
+	}
+	Serial.println();
 }
 // eeprom code end
 
@@ -228,8 +251,9 @@ void binding(){
     
     // Copy key binding status, 1 channel, and receiver mac into EEPROM
     EEPROM_DATA.binding_status = 1;
-    EEPROM_DATA.bound_ch = sending_ch;
-    memcpy(EEPROM_DATA.bound_mac, rssi_list[strongest_rssi_index].mac_address, sizeof(EEPROM_DATA.bound_mac));
+    EEPROM_DATA.bound_ch = myData.ch10;
+    memcpy(EEPROM_DATA.bound_mac, rssi_list[strongest_rssi_index].mac_address, sizeof(EEPROM_DATA.bound_mac));    
+    memcpy(EEPROM_DATA.encryption_key, myData.string, sizeof(myData.string));
 
     // Save the updated EEPROM data
     EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
@@ -417,11 +441,20 @@ void init_esp_now(){
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
   }else if(state == SENDING){
+      sending_ch = EEPROM_DATA.bound_ch;
+      memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
+      peerInfo.channel = EEPROM_DATA.bound_ch;  
+      peerInfo.encrypt = true;      
+      memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
+      if (esp_now_add_peer(&peerInfo) != ESP_OK){
+        Serial.println("Failed to add peer");
+        return;
+      }
     Serial.println("Sending mode");
-    change_channel(sending_ch);    
+    change_channel(sending_ch);
     esp_wifi_set_promiscuous(false);
-    esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);    
-    esp_now_register_recv_cb(OnDataRecv);    
+    esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
+    esp_now_register_recv_cb(OnDataRecv);
   }
 }
 
@@ -540,7 +573,6 @@ uint8_t get_switch_pos_2(){
 }
 
 void send_joysitck(){
-
   calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095), 0.3);
 
   myData.mode   = 1;
@@ -579,7 +611,7 @@ void send_joysitck(){
   // Serial.println(myData.sw_2);
 
   // esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-  esp_now_send(rssi_list[strongest_rssi_index].mac_address, (uint8_t *) &myData, sizeof(myData));
+  esp_now_send(peerInfo.peer_addr, (uint8_t *) &myData, sizeof(myData));
 }
 
 void update_states(){
@@ -602,8 +634,13 @@ void init_gpio(){
 void setup() {  
 
   Serial.begin(115200);
+  // while(!Serial){
+  //   ;
+  // }
   init_eeprom();
   init_gpio();
+
+
 
   // Check if joystick x and y are below 100 on both analog reads
   if (analogRead(g_x) < 1000 && analogRead(g_y) < 1000) {
@@ -617,6 +654,15 @@ void setup() {
     // Check if binding status in eeprom is equal to 1
     if (EEPROM_DATA.binding_status == 1) {
       state = SENDING;
+      // memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
+      // peerInfo.channel = EEPROM_DATA.bound_ch;  
+      // peerInfo.encrypt = true;      
+      // memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
+      // if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      //   Serial.println("Failed to add peer");
+      //   return;
+      // }
+      // init_esp_now();
     } else {
       state = BINDING;
     }
@@ -656,6 +702,7 @@ void loop() {
   // update_states();
   switch (state) {
     case SENDING:
+
       if(millis()-last_sendtime > 50){
         last_sendtime = millis();
         send_joysitck();

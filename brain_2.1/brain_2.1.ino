@@ -832,19 +832,19 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     Serial.print("Packet Recved from: ");
     print_MAC(mac);
     memcpy(&myData, incomingData, sizeof(myData));
-    Serial.print("mode: ");
-    Serial.print(myData.mode);
-    Serial.print("\tid: ");
-    Serial.print(myData.id);
-    Serial.print("\tx_axis: ");
-    Serial.print(myData.x_axis);
-    Serial.print("\ty_axis: ");
-    Serial.print(myData.y_axis);
-    Serial.print("\tpot_1: ");
-    Serial.print(myData.pot_1);
-    Serial.print("\tsw_1: ");
-    Serial.print(myData.sw_1);
-    Serial.println("\tsw_2: ");
+    // Serial.print("mode: ");
+    // Serial.print(myData.mode);
+    // Serial.print("\tid: ");
+    // Serial.print(myData.id);
+    // Serial.print("\tx_axis: ");
+    // Serial.print(myData.x_axis);
+    // Serial.print("\ty_axis: ");
+    // Serial.print(myData.y_axis);
+    // Serial.print("\tpot_1: ");
+    // Serial.print(myData.pot_1);
+    // Serial.print("\tsw_1: ");
+    // Serial.print(myData.sw_1);
+    // Serial.println("\tsw_2: ");
   
     if(received_binding_confirmed_packet()){
       binding_mode = false;
@@ -896,15 +896,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     Setpoint = 0;
   }
 
-  Serial.print(myData.x_axis);
-  Serial.print("\t");
-  Serial.print(myData.y_axis);
-  Serial.print("\t");
-  Serial.print(myData.pot_1);
-  Serial.print("\t");
-  Serial.print(myData.sw_1);
-  Serial.print("\t");
-  Serial.println(myData.sw_2);
+  // Serial.print(myData.x_axis);
+  // Serial.print("\t");
+  // Serial.print(myData.y_axis);
+  // Serial.print("\t");
+  // Serial.print(myData.pot_1);
+  // Serial.print("\t");
+  // Serial.print(myData.sw_1);
+  // Serial.print("\t");
+  // Serial.println(myData.sw_2);
 }
 
 void init_esp_now(){
@@ -1162,9 +1162,9 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Starting...\n");
 
-  while(!Serial){
-    ;
-  }
+  // while(!Serial){
+  //   ;
+  // }
   
   init_gpio();
   init_eeprom();
