@@ -181,19 +181,9 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     Kp = num1;
     Ki = num2;
     Kd = num3;
-    
-    // Serial.print("Number 1: ");
-    // Serial.println(num1, 5);
-    // Serial.print("Number 2: ");
-    // Serial.println(num2, 5);
-    // Serial.print("Number 3: ");
-    // Serial.println(num3, 5);
     led_color(255,255,255);
     delay(200);
     led_color(10,0,10);
-    // if (strcmp((char*)data, "update") == 0) {
-    //   // send_update();
-    // }
   }
 }
 
@@ -201,10 +191,10 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
              void *arg, uint8_t *data, size_t len) {
   switch (type) {
     case WS_EVT_CONNECT:
-      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+      // Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
-      Serial.printf("WebSocket client #%u disconnected\n", client->id());
+      // Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA:
       handleWebSocketMessage(arg, data, len);
@@ -228,7 +218,7 @@ String processor(const String& var){
 
 void init_WifiWebServer(){
   WiFi.softAP(ssid, password);
-  Serial.println(WiFi.localIP());
+  // Serial.println(WiFi.localIP());
   initWebSocket();
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
@@ -368,22 +358,22 @@ void init_imu(){
   Serial.println("FastIMU calibration & data example");
 
   // delay(2000);
-  Serial.println("Keep IMU level.");
+  // Serial.println("Keep IMU level.");
   // delay(3000);
   IMU.calibrateAccelGyro(&calib);
-  Serial.println("Calibration done!");
-  Serial.println("Accel biases X/Y/Z: ");
-  Serial.print(calib.accelBias[0]);
-  Serial.print(", ");
-  Serial.print(calib.accelBias[1]);
-  Serial.print(", ");
-  Serial.println(calib.accelBias[2]);
-  Serial.println("Gyro biases X/Y/Z: ");
-  Serial.print(calib.gyroBias[0]);
-  Serial.print(", ");
-  Serial.print(calib.gyroBias[1]);
-  Serial.print(", ");
-  Serial.println(calib.gyroBias[2]);
+  // Serial.println("Calibration done!");
+  // Serial.println("Accel biases X/Y/Z: ");
+  // Serial.print(calib.accelBias[0]);
+  // Serial.print(", ");
+  // Serial.print(calib.accelBias[1]);
+  // Serial.print(", ");
+  // Serial.println(calib.accelBias[2]);
+  // Serial.println("Gyro biases X/Y/Z: ");
+  // Serial.print(calib.gyroBias[0]);
+  // Serial.print(", ");
+  // Serial.print(calib.gyroBias[1]);
+  // Serial.print(", ");
+  // Serial.println(calib.gyroBias[2]);
   // delay(5000);
   IMU.init(calib, IMU_ADDRESS);
 #endif
@@ -482,16 +472,16 @@ void update_pid(){
   Input = (double)filtered_signal;
   myPID.Compute();
 
-  if(myData.sw_1 == 3){
-    Serial.print("set:");
-    Serial.print(Setpoint,3);
-    Serial.print(",filt:");
-    Serial.print(filtered_signal,3);
-    Serial.print(",raw_out:");
-    Serial.print(Output);
-    Serial.print(",core:");
-    Serial.println(xPortGetCoreID());
-  }
+  // if(myData.sw_1 == 3){
+  //   Serial.print("set:");
+  //   Serial.print(Setpoint,3);
+  //   Serial.print(",filt:");
+  //   Serial.print(filtered_signal,3);
+  //   Serial.print(",raw_out:");
+  //   Serial.print(Output);
+  //   Serial.print(",core:");
+  //   Serial.println(xPortGetCoreID());
+  // }
 
 }
 // pid code end
@@ -548,7 +538,6 @@ uint8_t MOTOR_C2_STATE = C2_COAST;
 uint8_t MOTOR_D2_STATE = D2_COAST;
 
 uint8_t MOTOR_LAYOUT = PARALEL_AC_BD;   // select A-C paralel B-D paralel
-bool motors_initialised = false;
 
 enum DRV8908_REGISTERS {
   IC_STAT=0,
@@ -632,9 +621,20 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
           MOTOR_C2_STATE = C2_BREAK;
           break;
       }
+      
+      
       // write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
+      
+      // Serial.print("motor status: ");
+      // Serial.println(drv8908_status, BIN);
+      Serial.print("OCP STATUS: ");
+      Serial.print(read_register_drv8908(OCP_STAT_1), BIN);
+      Serial.print(" : ");
+      Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
+
+
       if(motors_on){
         write_register_drv8908(PWM_DUTY_1, PWM);
       }else{
@@ -642,6 +642,9 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
       }
       // write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
       break;
+
+      Serial.print("motor status: ");
+
     case INDIVIDUAL_A_B_C_D:
     
       break;
@@ -694,45 +697,6 @@ void drive_motor_B(uint8_t new_state, uint8_t PWM){
   }
 }
 
-void init_drv8908(uint8_t config){
-  pinMode(CHIP_SEL,OUTPUT);
-  pinMode(FAULT, INPUT);
-  pinMode(SLEEP, OUTPUT);
-  digitalWrite(SLEEP, HIGH); 
-  SPI.begin(SCK, MISO, MOSI, CHIP_SEL);
-  delay(1);
-
-  switch (config) {
-  case PARALEL_AC_BD:
-    // general settings for all motors
-    write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
-    write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
-    write_register_drv8908(OLD_CTRL_3, 0b10000000);       // keep driving motors if open load is detected
-    
-    // write_register_drv8908(PWM_FREQ_CTRL_1, 0b10101010);  // set pwm freq to 200hz for all motors (default: 80, runs rough)
-    // write_register_drv8908(PWM_FREQ_CTRL_2, 0b10101010);  // 
-    // write_register_drv8908(FW_CTRL_1, 0b11111111);     // enables active freewheeling (heats motors, runs rough, meh)
-    write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
-    // map PWM chanels to halfbridges
-    write_register_drv8908(PWM_MAP_CTRL_1, 0b00001001);   // PWM CH2 to OUT_1 and OUT_2
-    write_register_drv8908(PWM_MAP_CTRL_2, 0b00000000);   // PWM CH1 to OUT_3 and OUT_4
-    write_register_drv8908(PWM_MAP_CTRL_3, 0b00000001);   // PWM CH1 to OUT_6 and PWM CH2 to OUT_5
-    write_register_drv8908(PWM_MAP_CTRL_4, 0b00001000);   // PWM CH1 to OUT_7 and PWM CH2 to OUT_8
-
-    write_register_drv8908(PWM_DUTY_1, 0);                // sets motor duty cycle
-    write_register_drv8908(PWM_DUTY_2, 0);                // sets motor duty cycle
-
-    write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
-    motors_initialised = true;
-    break;
-  case INDIVIDUAL_A_B_C_D:
-    // statements
-    break;
-  }
-  Serial.print("motor status: ");
-  read_drv8908_status();
-}
-
 void read_drv8908_status(){
   digitalWrite(CHIP_SEL, LOW);
   SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE1));
@@ -748,6 +712,46 @@ void read_drv8908_status(){
   Serial.println(received_data, BIN);
   delay(1);
 }
+
+void init_drv8908(uint8_t config){
+  pinMode(CHIP_SEL,OUTPUT);
+  pinMode(FAULT, INPUT);
+  pinMode(SLEEP, OUTPUT);
+  digitalWrite(SLEEP, HIGH); 
+  SPI.begin(SCK, MISO, MOSI, CHIP_SEL);
+  delay(1);
+
+  switch (config) {
+  case PARALEL_AC_BD:
+    // general settings for all motors
+    write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
+    write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
+    write_register_drv8908(OLD_CTRL_3, 0b10000000);       // keep driving motors if open load is detected
+    
+    write_register_drv8908(PWM_FREQ_CTRL_1, 0b10101010);  // set pwm freq to 200hz for all motors (default: 80, runs rough)
+    write_register_drv8908(PWM_FREQ_CTRL_2, 0b10101010);  // 
+    // write_register_drv8908(FW_CTRL_1, 0b11111111);     // enables active freewheeling (heats motors, runs rough, meh)
+    write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
+    // map PWM chanels to halfbridges
+    write_register_drv8908(PWM_MAP_CTRL_1, 0b00001001);   // PWM CH2 to OUT_1 and OUT_2
+    write_register_drv8908(PWM_MAP_CTRL_2, 0b00000000);   // PWM CH1 to OUT_3 and OUT_4
+    write_register_drv8908(PWM_MAP_CTRL_3, 0b00000001);   // PWM CH1 to OUT_6 and PWM CH2 to OUT_5
+    write_register_drv8908(PWM_MAP_CTRL_4, 0b00001000);   // PWM CH1 to OUT_7 and PWM CH2 to OUT_8
+
+    write_register_drv8908(PWM_DUTY_1, 0);                // sets motor duty cycle
+    write_register_drv8908(PWM_DUTY_2, 0);                // sets motor duty cycle
+
+    write_register_drv8908(PWM_CTRL_2, 0x00);  // enable pwm generation
+    break;
+  case INDIVIDUAL_A_B_C_D:
+    // statements
+    break;
+  }
+  Serial.print("motor status: ");
+  read_drv8908_status();
+}
+
+
 // motor driver code end
 
 // esp_now reciever
@@ -832,33 +836,6 @@ bool received_binding_confirmed_packet(){
 	){
     return true;
   } else {
-    
-	uint8_t mac[6];
-	WiFi.macAddress(mac);
-	Serial.print("CURRENT MAC Address: ");
-	for (int i = 0; i < 6; i++) {
-		Serial.print(mac[i], HEX);
-		if (i < 5) {
-			Serial.print(":");
-		}
-	}
-	Serial.println();
-
-	Serial.print("RECEIVED MAC Address: ");
-	for (int i = 0; i < 6; i++) {
-		Serial.print(myData.mac[i], HEX);
-		if (i < 5) {
-			Serial.print(":");
-		}
-	}
-
-	// does the mac address match the current mac address?
-	if (isMacAddressEqual(myData.mac, mac)) {
-		Serial.println("MAC addresses match");
-	} else {
-		Serial.println("MAC addresses do not match");
-	}
-
     return false;
   }
 }
@@ -872,8 +849,8 @@ void print_MAC(const uint8_t * mac_addr){
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   if(binding_mode){
-    Serial.print("Packet Recved from: ");
-    print_MAC(mac);
+    // Serial.print("Packet Recved from: ");
+    // print_MAC(mac);
     memcpy(&myData, incomingData, sizeof(myData));
     // Serial.print("mode: ");
     // Serial.print(myData.mode);
@@ -901,20 +878,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
         Serial.println("Failed to add peer");
         return;
       }
-      // Serial.println("binding confirmed, Added: ");
-      // print_MAC(peerInfo.peer_addr);
-      // Serial.print("Channel: ");
-      // Serial.println(peerInfo.channel);
 
-      // Serial.print("Password: ");
-      // for (int i = 0; i < 16; i++) {
-      //   Serial.print("0x");
-      //   Serial.print((byte)myData.string[i], HEX);
-      //   Serial.print(" ");
-      // }
-      // Serial.println();
-
-      // Copy key binding status, 1 channel, and receiver mac into EEPROM
       EEPROM_DATA.binding_status = 1;
       EEPROM_DATA.bound_ch = sending_ch;
       memcpy(EEPROM_DATA.bound_mac, peerInfo.peer_addr, sizeof(EEPROM_DATA.bound_mac));
@@ -966,24 +930,23 @@ void init_esp_now(){
       Serial.println("Failed to add peer");
       return;
     }
-    Serial.println("added peer");
     change_channel(binding_ch);
-    Serial.println("setting binding channel");
+    // Serial.println("setting binding channel");
   }else{
 		
-		Serial.print("\n\n\nPEER INFO FROM EEPROM:");
-		Serial.print("Peer MAC Address: ");
-		print_MAC(peerInfo.peer_addr);
-		Serial.print("Channel: ");
-		Serial.println(peerInfo.channel);
-		Serial.print("Encryption: ");
-		Serial.println(peerInfo.encrypt ? "Enabled" : "Disabled");
-		Serial.print("Password as hex: ");
-		for (int i = 0; i < 16; i++) {
-			Serial.print(peerInfo.lmk[i], HEX);
-			Serial.print(" ");
-		}
-		Serial.println();
+		// Serial.print("\n\n\nPEER INFO FROM EEPROM:");
+		// Serial.print("Peer MAC Address: ");
+		// print_MAC(peerInfo.peer_addr);
+		// Serial.print("Channel: ");
+		// Serial.println(peerInfo.channel);
+		// Serial.print("Encryption: ");
+		// Serial.println(peerInfo.encrypt ? "Enabled" : "Disabled");
+		// Serial.print("Password as hex: ");
+		// for (int i = 0; i < 16; i++) {
+		// 	Serial.print(peerInfo.lmk[i], HEX);
+		// 	Serial.print(" ");
+		// }
+		// Serial.println();
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
       Serial.println("Failed to add peer");
       return;
@@ -995,53 +958,11 @@ void init_esp_now(){
 
 void switch_wireles_mode(){
   
-  	Serial.println("Peer Info:");
-	Serial.print("Peer MAC Address: ");
-	print_MAC(peerInfo.peer_addr);
-	Serial.print("Peer channel: ");
-	Serial.println(peerInfo.channel);
-	Serial.print("Encryption: ");
-	Serial.println(peerInfo.encrypt ? "Enabled" : "Disabled");
-	Serial.print("Encryption Key: ");
-	for (int i = 0; i < 16; i++) {
-		Serial.print(peerInfo.lmk[i], HEX);
-		Serial.print(" ");
-	}
-	Serial.println();
-
-	Serial.println("Current channel: ");
-	Serial.println(current_ch);
-	Serial.println("Sending channel: ");
-	Serial.println(sending_ch);
-	Serial.println("Binding mode: ");
-	Serial.println(binding_mode);
-
-	uint8_t mac[6];
-	WiFi.macAddress(mac);
-	Serial.print("CURRENT MAC Address: ");
-	for (int i = 0; i < 6; i++) {
-		Serial.print(mac[i], HEX);
-		if (i < 5) {
-			Serial.print(":");
-		}
-	}
-	Serial.println();
-
-	Serial.print("RECEIVED MAC Address: ");
-	for (int i = 0; i < 6; i++) {
-		Serial.print(myData.mac[i], HEX);
-		if (i < 5) {
-			Serial.print(":");
-		}
-	}
-
-	// does the mac address match the current mac address?
-	if (isMacAddressEqual(myData.mac, mac)) {
-		Serial.println("MAC addresses match");
-	} else {
-		Serial.println("MAC addresses do not match");
-	}
-
+  Serial.print("motor status: ");
+  read_drv8908_status();
+  
+  // init_drv8908(MOTOR_LAYOUT);
+  write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
 
   // if(wireles_mode == 0){
   //   wireles_mode = 1;
@@ -1108,41 +1029,23 @@ void drive_motors_forward_backward(){
   // driving
   if(motorA_output == 0){
     drive_motor_A(COAST, 0);
-    // Serial.print("PWM_A: ");
-    // Serial.print(0);
   }else if(motorA_output > 0){
     drive_motor_A(FORWARD,  map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-    // Serial.print("PWM_A: ");
-    // Serial.print(map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
   }else if(motorA_output < 0){
     drive_motor_A(BACKWARD, map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-    // Serial.print("PWM_A: ");
-    // Serial.print(map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
   }
 
   if(motorB_output == 0){
     drive_motor_B(COAST, 0);
-    // Serial.print("\tPWM_B: ");
-    // Serial.print(0);
   }else if(motorB_output > 0){
     drive_motor_B(BACKWARD,  map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-    // Serial.print("\tPWM_B: ");
-    // Serial.print(map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
   }else if(motorB_output < 0){
     drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-    // Serial.print("\tPWM_B: ");
-    // Serial.print(map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
   }
-  // Serial.print("driver_status: ");
-  // read_drv8908_status();
   myservo.write(map(myData.pot_1,0,4950,0,180));
 }
 
 void drive_motors(){
-
-  // myData.ch01 -= round(Output);
-  // myData.ch02 += round(Output);
-
   if((millis()-last_receive) > 100 ){   // if no packets for 100ms assume FS_RC
     drive_motor_A(COAST, 0);
     drive_motor_B(COAST, 0);
@@ -1173,7 +1076,6 @@ void drive_motors(){
       motorB_output += round(Output);
     }
     drive_motors_forward_backward();
-
   }
 
   if(myData.sw_1 == 2){
