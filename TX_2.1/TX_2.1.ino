@@ -115,6 +115,7 @@ typedef struct struct_message {
   uint8_t   ch15;
   uint8_t   ch16;
   char string[16];
+  uint8_t mac[6];
 } struct_message;
 struct_message myData;
 int ch1_offset = 0;
@@ -190,6 +191,7 @@ void print_rssi_list(){
 }
 
 unsigned long last_list_print = 0;
+
 void binding(){
   if(current_ch != binding_ch)change_channel(binding_ch);
   int strongest_rssi_index_local = 0;
@@ -225,11 +227,7 @@ void binding(){
       pmk_key_str[i] = randomByte;  // Format byte as hex and append
     }
 
-    // Print the PMK in the format of a C string constant
-    // Serial.print("static const char* PMK_KEY_STR = ");
-    // Serial.print(pmk_key_str);
-    // Serial.println();
-
+    sending_ch = 2;
     myData.mode   = 43;
     myData.id     = 43;
     myData.x_axis = 43;
@@ -237,8 +235,9 @@ void binding(){
     myData.pot_1  = 43;
     myData.sw_1   = 43;
     myData.sw_2   = 43;
-    myData.ch10   = 2;
+    myData.ch10   = sending_ch;
     strcpy(myData.string, pmk_key_str);
+    memcpy(myData.mac, rssi_list[strongest_rssi_index].mac_address, 6);
 
 
     Serial.print("Password: ");
@@ -249,13 +248,10 @@ void binding(){
     }
     Serial.println();
     
-    // Copy key binding status, 1 channel, and receiver mac into EEPROM
     EEPROM_DATA.binding_status = 1;
-    EEPROM_DATA.bound_ch = myData.ch10;
-    memcpy(EEPROM_DATA.bound_mac, rssi_list[strongest_rssi_index].mac_address, sizeof(EEPROM_DATA.bound_mac));    
+    EEPROM_DATA.bound_ch = sending_ch;
+    memcpy(EEPROM_DATA.bound_mac, rssi_list[strongest_rssi_index].mac_address, sizeof(EEPROM_DATA.bound_mac));
     memcpy(EEPROM_DATA.encryption_key, myData.string, sizeof(myData.string));
-
-    // Save the updated EEPROM data
     EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
     EEPROM.commit();
 
@@ -268,7 +264,6 @@ void binding(){
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     esp_wifi_set_promiscuous(false);
 
-    sending_ch = 2;
     change_channel(sending_ch);
     Serial.println("binding confirmed");
     memcpy(peerInfo.peer_addr, rssi_list[strongest_rssi_index].mac_address, 6);
@@ -599,16 +594,7 @@ void send_joysitck(){
   myData.ch14   = 50;
   myData.ch15   = 50;
   myData.ch16   = 130;
-
-  // Serial.print(myData.x_axis);
-  // Serial.print("\t");
-  // Serial.print(myData.y_axis);
-  // Serial.print("\t");
-  // Serial.print(myData.pot_1);
-  // Serial.print("\t");
-  // Serial.print(myData.sw_1);
-  // Serial.print("\t");
-  // Serial.println(myData.sw_2);
+  memcpy(myData.mac, peerInfo.peer_addr, 6);
 
   // esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
   esp_now_send(peerInfo.peer_addr, (uint8_t *) &myData, sizeof(myData));
@@ -642,7 +628,6 @@ void setup() {
 
 
 
-  // Check if joystick x and y are below 100 on both analog reads
   if (analogRead(g_x) < 1000 && analogRead(g_y) < 1000) {
     state = BINDING;
   } else {    
@@ -651,18 +636,8 @@ void setup() {
     Serial.print(" ");
     Serial.println(analogRead(g_y));
 
-    // Check if binding status in eeprom is equal to 1
     if (EEPROM_DATA.binding_status == 1) {
       state = SENDING;
-      // memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
-      // peerInfo.channel = EEPROM_DATA.bound_ch;  
-      // peerInfo.encrypt = true;      
-      // memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
-      // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-      //   Serial.println("Failed to add peer");
-      //   return;
-      // }
-      // init_esp_now();
     } else {
       state = BINDING;
     }

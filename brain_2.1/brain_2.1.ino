@@ -30,6 +30,7 @@ typedef struct struct_message {
   uint8_t   ch15;
   uint8_t   ch16;
   char string[16];
+  uint8_t mac[6];
 } struct_message;
 struct_message myData;
 
@@ -806,18 +807,60 @@ bool binding(){
   return false;
 }
 
+bool isMacAddressEqual(const uint8_t* receivedMac, const uint8_t* currentMac) {
+	for (int i = 0; i < 6; i++) {
+		if (receivedMac[i] != currentMac[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool received_binding_confirmed_packet(){
+	
+	uint8_t mymac[6];
+	WiFi.macAddress(mymac);
+
   if(myData.mode    == 43
   && myData.id      == 43
   && myData.x_axis  == 43
   && myData.y_axis  == 43
   && myData.pot_1   == 43
   && myData.sw_1    == 43
-  && myData.sw_2    == 43){
+  && myData.sw_2    == 43
+  && isMacAddressEqual(myData.mac, mymac)
+	){
     return true;
   } else {
+    
+	uint8_t mac[6];
+	WiFi.macAddress(mac);
+	Serial.print("CURRENT MAC Address: ");
+	for (int i = 0; i < 6; i++) {
+		Serial.print(mac[i], HEX);
+		if (i < 5) {
+			Serial.print(":");
+		}
+	}
+	Serial.println();
+
+	Serial.print("RECEIVED MAC Address: ");
+	for (int i = 0; i < 6; i++) {
+		Serial.print(myData.mac[i], HEX);
+		if (i < 5) {
+			Serial.print(":");
+		}
+	}
+
+	// does the mac address match the current mac address?
+	if (isMacAddressEqual(myData.mac, mac)) {
+		Serial.println("MAC addresses match");
+	} else {
+		Serial.println("MAC addresses do not match");
+	}
+
     return false;
-  }  
+  }
 }
 
 void print_MAC(const uint8_t * mac_addr){
@@ -946,9 +989,7 @@ void init_esp_now(){
       return;
     }
     change_channel(sending_ch);
-  }
-  
-  Serial.print("WWWWTTTTFFFFFF:");
+  }  
   esp_now_register_recv_cb(OnDataRecv);
 }
 
@@ -974,6 +1015,33 @@ void switch_wireles_mode(){
 	Serial.println(sending_ch);
 	Serial.println("Binding mode: ");
 	Serial.println(binding_mode);
+
+	uint8_t mac[6];
+	WiFi.macAddress(mac);
+	Serial.print("CURRENT MAC Address: ");
+	for (int i = 0; i < 6; i++) {
+		Serial.print(mac[i], HEX);
+		if (i < 5) {
+			Serial.print(":");
+		}
+	}
+	Serial.println();
+
+	Serial.print("RECEIVED MAC Address: ");
+	for (int i = 0; i < 6; i++) {
+		Serial.print(myData.mac[i], HEX);
+		if (i < 5) {
+			Serial.print(":");
+		}
+	}
+
+	// does the mac address match the current mac address?
+	if (isMacAddressEqual(myData.mac, mac)) {
+		Serial.println("MAC addresses match");
+	} else {
+		Serial.println("MAC addresses do not match");
+	}
+
 
   // if(wireles_mode == 0){
   //   wireles_mode = 1;
@@ -1106,35 +1174,11 @@ void drive_motors(){
     }
     drive_motors_forward_backward();
 
-    
-    // Serial.print("x_axis: ");
-    // Serial.print(myData.x_axis);
-    // Serial.print("\ty_axis: ");
-    // Serial.print(myData.y_axis);
-
-    // Serial.print("\tmotorA_output: ");
-    // Serial.print(motorA_output);
-    // Serial.print("\tmotorB_output: ");
-    // Serial.println(motorB_output);
   }
 
   if(myData.sw_1 == 2){
     new_rx_data = false;
 
-    // // mixing 
-    // if(myData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || myData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-    //   motorA_output = myData.y_axis-2048;
-    //   motorB_output = motorA_output;
-    // }else{
-    //   motorA_output = 0;
-    //   motorB_output = 0;
-    // }
-    
-    // if(myData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || myData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-    //   motorA_output += (myData.x_axis-2048)/2;
-    //   motorB_output -= (myData.x_axis-2048)/2;      
-    // }
-    // drive_motors_forward_backward();
     drive_motor_A(FORWARD, map( myData.x_axis,0 ,4096 ,0 ,255 ));
     drive_motor_B(FORWARD, map( myData.y_axis,0 ,4096 ,0 ,255 ));
     delay(20);
@@ -1149,13 +1193,6 @@ void drive_motors(){
     drive_motor_A(COAST,0);
     drive_motor_B(COAST,0);
   }
-
-  // if(myData.sw_1 == 2){    
-  //   Serial.print("PWM_A: ");
-  //   Serial.print(map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-  //   Serial.print(",PWM_B: ");
-  //   Serial.println(map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-  // }
 }
 
 void setup() {  
@@ -1178,33 +1215,14 @@ void setup() {
       ;
     }
   }else{
-    // delay(1000);
     if(EEPROM_DATA.binding_status == 1){
-
-
       memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
       peerInfo.channel = EEPROM_DATA.bound_ch;  
       peerInfo.encrypt = true;      
       memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
-			
     	init_esp_now();
-
-      // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-      //   Serial.println("Failed to add peer");
-      //   return;
-      // }
-
-			// for (int i = 0; i < 6; i++) {
-			// 	peerInfo.peer_addr[i] = EEPROM_DATA.bound_mac[i];
-			// }
-      // peerInfo.channel = EEPROM_DATA.bound_ch;
-      // peerInfo.encrypt = true;
-      // memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
-      
     }
   }
-        // delay(1000);
-
   init_pid();
   init_servo();
   init_imu();
