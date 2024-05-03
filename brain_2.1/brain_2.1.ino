@@ -567,9 +567,10 @@ uint8_t write_register_drv8908(uint8_t write_register, uint8_t write_data){
   drv8908_status = SPI.transfer(write_register);
   uint8_t received_data = SPI.transfer(write_data);
   SPI.endTransaction();
-  delayMicroseconds(1);  
+  delayMicroseconds(1);
   digitalWrite(CHIP_SEL, HIGH);
-  delay(1);
+  delayMicroseconds(1);
+  // delay(1);
   return received_data;
 }
 
@@ -624,15 +625,14 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
       
       
       // write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
+      write_register_drv8908(PWM_DUTY_1, 0);
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
-      
-      // Serial.print("motor status: ");
-      // Serial.println(drv8908_status, BIN);
-      Serial.print("OCP STATUS: ");
-      Serial.print(read_register_drv8908(OCP_STAT_1), BIN);
-      Serial.print(" : ");
-      Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
+
+      // Serial.print("OCP STATUS: ");
+      // Serial.print(read_register_drv8908(OCP_STAT_1), BIN);
+      // Serial.print(" : ");
+      // Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
 
 
       if(motors_on){
@@ -681,6 +681,7 @@ void drive_motor_B(uint8_t new_state, uint8_t PWM){
           break;
       }
       // write_register_drv8908(PWM_CTRL_2, 0xFF);  // disable pwm generation
+      write_register_drv8908(PWM_DUTY_2, 0);
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
       // write_register_drv8908(OP_CTRL_1, MOTOR_B1_STATE);
