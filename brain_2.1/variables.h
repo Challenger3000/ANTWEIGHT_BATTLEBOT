@@ -1,7 +1,7 @@
 // general variables start
 uint8_t wireles_mode = 0; // 0 - esp_now signal receiver. 1 - wifi web server
 double Kp=4.3, Ki=0, Kd=0.05;
-bool motors_on = true;
+
 bool new_rx_data = false;
 #define GIMBAL_STICK_DEADZONE 50
 int motorA_output = 0;
@@ -39,8 +39,6 @@ struct_message myData;
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-const char* ssid = "TEST_WIFI";
-const char* password = "12345678";
 double num1, num2, num3;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -263,8 +261,6 @@ uint8_t MOTOR_B2_STATE = B2_COAST;
 uint8_t MOTOR_C2_STATE = C2_COAST;
 uint8_t MOTOR_D2_STATE = D2_COAST;
 
-uint8_t MOTOR_LAYOUT = PARALEL_AC_BD;   // select A-C paralel B-D paralel
-
 enum DRV8908_REGISTERS {
   IC_STAT=0,
   OCP_STAT_1,  OCP_STAT_2,
@@ -313,6 +309,5 @@ esp_now_peer_info_t peerInfo;
 // servo variables start
 #include <ESP32Servo.h>
 Servo myservo;
-int servo_position = 0;
 #define SERVO_1 38
 // servo variables end
