@@ -458,9 +458,8 @@ void drive_motors(){
   if((millis()-last_receive) > 100 ){   // if no packets for 100ms assume signal lost, so turn off motors.
     drive_motor_A(COAST, 0);
     drive_motor_B(COAST, 0);
+    led_state = RX_LOST;
     return;
-    led_color(10,0,0);
-    // Serial.println("NO SIGNAL");
   }
 
   if(myData.sw_1 == 1){ // need to run pid loop faster
@@ -490,19 +489,32 @@ void drive_motors(){
   if(myData.sw_1 == 2){
     new_rx_data = false;
     
-    drive_motor_A(FORWARD, 100);
-    drive_motor_B(FORWARD, 150);
-    drive_motor_C(FORWARD, 200);
-    drive_motor_D(FORWARD, 250);
+    drive_motor_A(FORWARD, -1*constrain(map( myData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    drive_motor_B(FORWARD, constrain(map( myData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
+    drive_motor_C(FORWARD, constrain(map( myData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
+    drive_motor_D(FORWARD, -1*constrain(map( myData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
 
+    // drive_motor_A(FORWARD, map( myData.x_axis,2050 ,4096 ,0 ,255 ));
+    // drive_motor_B(FORWARD, map( myData.y_axis,0 ,2000 ,0 ,255 ));
+    
     // drive_motor_A(FORWARD, map( myData.x_axis,0 ,4096 ,0 ,255 ));
     // drive_motor_B(FORWARD, map( myData.y_axis,0 ,4096 ,0 ,255 ));
-    // delay(20);
+    delay(20);
+
+    Serial.print("RIGHT: ");
+    Serial.print(constrain(map( myData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
+    Serial.print(" , LEFT: ");
+    Serial.print(-1*constrain(map( myData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
     
-    // Serial.print("PWM_A: ");
-    // Serial.print(map( myData.x_axis,0 ,4096 ,0 ,255 ));
-    // Serial.print(",PWM_B: ");
-    // Serial.println(map( myData.y_axis,0 ,4096 ,0 ,255 ));
+    Serial.print(" ,UP: ");
+    Serial.print(constrain(map( myData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
+    Serial.print(" , DOWN: ");
+    Serial.print(-1*constrain(map( myData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    
+    Serial.print(" , X: ");
+    Serial.print(myData.x_axis);
+    Serial.print(" , Y: ");
+    Serial.println(myData.y_axis);
   }
 
   if(myData.sw_1 == 3){

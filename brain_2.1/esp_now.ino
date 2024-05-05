@@ -3,6 +3,7 @@ void init_esp_now_rx(){
   if(!digitalRead(BUTTON)){
     binding_mode = true;
     init_esp_now();
+    led_color(0,10,10);
     while(!binding()){
       ;
     }
@@ -32,7 +33,11 @@ void printMAC(const uint8_t * mac_addr){
 bool binding(){
   if(!binding_mode){return true;}
   if(current_ch != binding_ch)change_channel(binding_ch);
-
+  if(millis() % 500 < 250){
+    led_color(0, 0, 10);
+  }else{
+    led_color(0, 10, 20);
+  }
   if(millis()-last_sendtime > 200){
     last_sendtime = millis();
     myData.mode   = 42;
@@ -125,10 +130,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // recieved binding confirmed packet, set password/channel
     // add pear to list
     return;
-  }
+  }else{
   memcpy(&myData, incomingData, sizeof(myData));
   last_receive = millis();
   new_rx_data = true;
+  led_state = RX_RECEIVING;
   int temp_setpoint = map(myData.x_axis,0,4095,600,-600);
   if(temp_setpoint > 6 || temp_setpoint < -6){
     Setpoint = temp_setpoint;
@@ -145,6 +151,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   // Serial.print(myData.sw_1);
   // Serial.print("\t");
   // Serial.println(myData.sw_2);
+  }
 }
 
 void init_esp_now(){

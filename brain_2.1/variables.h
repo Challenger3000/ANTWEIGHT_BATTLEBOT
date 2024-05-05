@@ -169,6 +169,14 @@ struct_eeprom EEPROM_DATA;
 #define DATA_PIN 1
 #define CLOCK_PIN 13
 CRGB leds[NUM_LEDS];
+unsigned long last_led_update = 0;
+bool led_warning_phase = false;
+enum LED_STATUS_STATES {
+  RX_RECEIVING = 0,
+  RX_LOST = 1,
+};
+
+int led_state = RX_LOST;
 // led variables end
 
 
@@ -250,6 +258,7 @@ enum DRV8908_MOTOR_REGISTER_STATES {
 #define FAULT 9
 #define SLEEP 11
 uint8_t drv8908_status = 0;
+bool drv8908_overcurrent = false;
 
 uint8_t MOTOR_A1_STATE = A1_COAST;
 uint8_t MOTOR_B1_STATE = B1_COAST;

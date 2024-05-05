@@ -12,7 +12,7 @@ void setup() {
   
   init_gpio();
   init_eeprom();
-  led_init();
+  init_led();
   init_esp_now_rx();
   init_pid();
   init_servo();
@@ -22,8 +22,9 @@ void setup() {
 }
 
 void loop() {
+  led_update();
   update_gpio();
   update_filter();
   update_pid();
-  drive_motors();
+  drive_motors();  
 }
