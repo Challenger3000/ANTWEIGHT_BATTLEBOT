@@ -259,6 +259,7 @@ enum DRV8908_MOTOR_REGISTER_STATES {
 #define SLEEP 11
 uint8_t drv8908_status = 0;
 bool drv8908_overcurrent = false;
+unsigned long last_drive_command = 0;
 
 uint8_t MOTOR_A1_STATE = A1_COAST;
 uint8_t MOTOR_B1_STATE = B1_COAST;
@@ -317,6 +318,6 @@ esp_now_peer_info_t peerInfo;
 
 // servo variables start
 #include <ESP32Servo.h>
-Servo myservo;
-#define SERVO_1 38
+Servo servo_1;
+Servo servo_2;
 // servo variables end

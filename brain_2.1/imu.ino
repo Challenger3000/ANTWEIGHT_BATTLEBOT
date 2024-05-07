@@ -21,7 +21,7 @@ void init_imu(){
     led_color(128,0,0);
   
 #ifdef PERFORM_CALIBRATION
-  Serial.println("FastIMU calibration & data example");
+  // Serial.println("FastIMU calibration & data example");
   IMU.calibrateAccelGyro(&calib);
   IMU.init(calib, IMU_ADDRESS);
 #endif
@@ -42,18 +42,18 @@ void init_imu(){
 void imu_print(){
   IMU.update();
   IMU.getAccel(&accelData);
-  Serial.print(accelData.accelX);
-  Serial.print("\t");
-  Serial.print(accelData.accelY);
-  Serial.print("\t");
-  Serial.print(accelData.accelZ);
-  Serial.print("\t");
+  // Serial.print(accelData.accelX);
+  // Serial.print("\t");
+  // Serial.print(accelData.accelY);
+  // Serial.print("\t");
+  // Serial.print(accelData.accelZ);
+  // Serial.print("\t");
   IMU.getGyro(&gyroData);
-  Serial.print(gyroData.gyroX);
-  Serial.print("\t");
-  Serial.print(gyroData.gyroY);
-  Serial.print("\t");
-  Serial.print(gyroData.gyroZ);
-  Serial.print("\t");
-  Serial.println(IMU.getTemp());  
+  // Serial.print(gyroData.gyroX);
+  // Serial.print("\t");
+  // Serial.print(gyroData.gyroY);
+  // Serial.print("\t");
+  // Serial.print(gyroData.gyroZ);
+  // Serial.print("\t");
+  // Serial.println(IMU.getTemp());  
 }

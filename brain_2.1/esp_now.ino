@@ -198,7 +198,7 @@ void init_esp_now(){
 
 void switch_wireles_mode(){
   
-  Serial.print("motor status: ");
+  // Serial.print("motor status: ");
   read_drv8908_status();
   
   // init_drv8908(MOTOR_LAYOUT);

@@ -7,6 +7,34 @@ enum TX_STATES {
 uint8_t state = SENDING;
 bool new_rx_data = false;
 
+// led code start
+#include <FastLED.h>
+#define NUM_LEDS 4
+#define DATA_PIN 1
+CRGB leds[NUM_LEDS];
+unsigned long last_led_update = 0;
+bool led_warning_phase = false;
+enum LED_STATUS_STATES {
+  RX_RECEIVING = 0,
+  RX_LOST = 1,
+};
+void init_led(){
+  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB
+  leds[0] = CRGB(255, 255, 255);
+  FastLED.show();
+  delay(10);
+  leds[0] = CRGB(0, 0, 0);
+  FastLED.show();
+}
+
+void led_color(uint8_t red, uint8_t green, uint8_t blue){
+  leds[0] = CRGB(green, red, blue);
+  FastLED.show();
+}
+
+
+// led code end
+
 // eeprom code start
 #define EEPROM_SIZE 200
 #define EEPROM_ADDRES 100
@@ -86,13 +114,13 @@ unsigned long last_receive=0;
 esp_now_peer_info_t peerInfo;
 
 // hardware pins
-#define g_x 9
-#define g_y 10
-#define pot 8
-#define switch_1_up   15
-#define switch_1_down 16
-#define switch_2_up   17
-#define switch_2_down 18
+#define g_x 4
+#define g_y 5
+#define pot 6
+#define switch_1_up   12
+#define switch_1_down 11
+#define switch_2_up   13
+#define switch_2_down 14
 
 // variables
 typedef struct struct_message {
@@ -635,6 +663,10 @@ void setup() {
   // while(!Serial){
   //   ;
   // }
+  init_led();
+  led_color(0, 255, 0);
+
+
   init_eeprom();
   init_gpio();
 

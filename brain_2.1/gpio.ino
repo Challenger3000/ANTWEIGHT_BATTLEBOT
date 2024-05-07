@@ -12,9 +12,9 @@ void update_gpio(){
 
   // imu_print();
   // if(Serial){
-  //   // double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
-  //   // Serial.print("V_bat: ");
-  //   // Serial.print(v_bat);
-  //   // Serial.print("\tV_cell: ");
-  //   // Serial.println(v_bat/3.0);
+  // double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
+  // Serial.print("V_bat: ");
+  // Serial.print(v_bat);
+  // Serial.print("\tV_cell: ");
+  // Serial.println(v_bat/3.0);
   // }

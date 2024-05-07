@@ -4,8 +4,7 @@
 
 void setup() {  
   Serial.begin(115200);
-  Serial.println("Starting...\n");
-
+  
   // while(!Serial){
   //   ;
   // }
@@ -26,5 +25,5 @@ void loop() {
   update_gpio();
   update_filter();
   update_pid();
-  drive_motors();  
+  driving_logic();
 }

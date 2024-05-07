@@ -429,8 +429,8 @@ void init_drv8908(uint8_t config){
     write_register_drv8908(PWM_CTRL_2, 0x00);             // enable pwm generation
     break;
   }
-  Serial.print("motor status: ");
-  read_drv8908_status();
+  // Serial.print("motor status: ");
+  // read_drv8908_status();
 }
 
 
@@ -451,21 +451,22 @@ void drive_motors_forward_backward(){
   }else if(motorB_output < 0){
     drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
   }
-  myservo.write(map(myData.pot_1,0,4950,0,180));
+  servo_1.write(map(myData.pot_1,0,4950,0,180));
+  servo_2.write(map(myData.pot_1,0,4950,0,180));
 }
 
-void drive_motors(){
+void driving_logic(){
   if((millis()-last_receive) > 100 ){   // if no packets for 100ms assume signal lost, so turn off motors.
-    drive_motor_A(COAST, 0);
-    drive_motor_B(COAST, 0);
-    led_state = RX_LOST;
+    failsafe();
     return;
   }
 
-  if(myData.sw_1 == 1){ // need to run pid loop faster
+
+  if(myData.sw_1 == 1 && millis() - last_drive_command >= 10){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power
+    last_drive_command = millis();
     new_rx_data = false;
 
-    // mixing 
+    // mixing
     if(myData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || myData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
       motorA_output = myData.y_axis-2048;
       motorB_output = motorA_output;
@@ -479,14 +480,15 @@ void drive_motors(){
       motorB_output -= (myData.x_axis-2048)/2;      
     }
 
-    if(true){
+    if(use_imu_for_yaw_rate){
       motorA_output -= round(Output);
       motorB_output += round(Output);
     }
     drive_motors_forward_backward();
   }
 
-  if(myData.sw_1 == 2){
+  if(myData.sw_1 == 2 && millis() - last_drive_command >= 10){
+    last_drive_command = millis();
     new_rx_data = false;
     
     drive_motor_A(FORWARD, -1*constrain(map( myData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
@@ -499,7 +501,6 @@ void drive_motors(){
     
     // drive_motor_A(FORWARD, map( myData.x_axis,0 ,4096 ,0 ,255 ));
     // drive_motor_B(FORWARD, map( myData.y_axis,0 ,4096 ,0 ,255 ));
-    delay(20);
 
     Serial.print("RIGHT: ");
     Serial.print(constrain(map( myData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
