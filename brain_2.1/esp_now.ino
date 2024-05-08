@@ -1,3 +1,11 @@
+void send_voltage_telemety(){
+  if(millis() - last_voltage_send > 1000){
+    last_voltage_send = millis();
+    float v_bat = 0.0067441860 * (float)analogRead(VSENSE);
+    txData.volatage = v_bat/cell_count;
+    esp_now_send(EEPROM_DATA.bound_mac, (uint8_t *) &txData, sizeof(txData));
+  }
+}
 
 void init_esp_now_rx(){
   if(!digitalRead(BUTTON)){
@@ -40,26 +48,26 @@ bool binding(){
   }
   if(millis()-last_sendtime > 200){
     last_sendtime = millis();
-    myData.mode   = 42;
-    myData.id     = 42;
-    myData.x_axis = 42;
-    myData.y_axis = 42;
-    myData.pot_1  = 42;
-    myData.sw_1   = 42;
-    myData.sw_2   = 42;
-    myData.ch06   = 42;
-    myData.ch07   = 42;
-    myData.ch08   = 42;
-    myData.ch09   = 42;
-    myData.ch10   = 42;
-    myData.ch11   = 42;
-    myData.ch12   = 42;
-    myData.ch13   = 42;
-    myData.ch14   = 42;
-    myData.ch15   = 42;
-    myData.ch16   = 42;
+    rxData.mode   = 42;
+    rxData.id     = 42;
+    rxData.x_axis = 42;
+    rxData.y_axis = 42;
+    rxData.pot_1  = 42;
+    rxData.sw_1   = 42;
+    rxData.sw_2   = 42;
+    rxData.ch06   = 42;
+    rxData.ch07   = 42;
+    rxData.ch08   = 42;
+    rxData.ch09   = 42;
+    rxData.ch10   = 42;
+    rxData.ch11   = 42;
+    rxData.ch12   = 42;
+    rxData.ch13   = 42;
+    rxData.ch14   = 42;
+    rxData.ch15   = 42;
+    rxData.ch16   = 42;
     // Serial.println("sending binding");
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_now_send(broadcastAddress, (uint8_t *) &rxData, sizeof(rxData));
   }
   return false;
 }
@@ -78,14 +86,14 @@ bool received_binding_confirmed_packet(){
 	uint8_t mymac[6];
 	WiFi.macAddress(mymac);
 
-  if(myData.mode    == 43
-  && myData.id      == 43
-  && myData.x_axis  == 43
-  && myData.y_axis  == 43
-  && myData.pot_1   == 43
-  && myData.sw_1    == 43
-  && myData.sw_2    == 43
-  && isMacAddressEqual(myData.mac, mymac)
+  if(rxData.mode    == 43
+  && rxData.id      == 43
+  && rxData.x_axis  == 43
+  && rxData.y_axis  == 43
+  && rxData.pot_1   == 43
+  && rxData.sw_1    == 43
+  && rxData.sw_2    == 43
+  && isMacAddressEqual(rxData.mac, mymac)
 	){
     return true;
   } else {
@@ -102,16 +110,16 @@ void print_MAC(const uint8_t * mac_addr){
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   if(binding_mode){
-    memcpy(&myData, incomingData, sizeof(myData));
+    memcpy(&rxData, incomingData, sizeof(rxData));
 
     if(received_binding_confirmed_packet()){
       binding_mode = false;
-      sending_ch = myData.ch10;
+      sending_ch = rxData.ch10;
       change_channel(sending_ch);
       memcpy(peerInfo.peer_addr, mac, 6);
       peerInfo.channel = sending_ch;  
       peerInfo.encrypt = true;      
-      memcpy(peerInfo.lmk, myData.string, 16);
+      memcpy(peerInfo.lmk, rxData.string, 16);
       if (esp_now_add_peer(&peerInfo) != ESP_OK){
         Serial.println("Failed to add peer");
         return;
@@ -120,7 +128,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       EEPROM_DATA.binding_status = 1;
       EEPROM_DATA.bound_ch = sending_ch;
       memcpy(EEPROM_DATA.bound_mac, peerInfo.peer_addr, sizeof(EEPROM_DATA.bound_mac));
-			memcpy(EEPROM_DATA.encryption_key, myData.string, sizeof(EEPROM_DATA.encryption_key));
+			memcpy(EEPROM_DATA.encryption_key, rxData.string, sizeof(EEPROM_DATA.encryption_key));
 
       // Save the updated EEPROM data
       EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
@@ -131,26 +139,26 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // add pear to list
     return;
   }else{
-  memcpy(&myData, incomingData, sizeof(myData));
+  memcpy(&rxData, incomingData, sizeof(rxData));
   last_receive = millis();
   new_rx_data = true;
   led_state = RX_RECEIVING;
-  int temp_setpoint = map(myData.x_axis,0,4095,600,-600);
+  int temp_setpoint = map(rxData.x_axis,0,4095,600,-600);
   if(temp_setpoint > 6 || temp_setpoint < -6){
     Setpoint = temp_setpoint;
   }else{
     Setpoint = 0;
   }
 
-  // Serial.print(myData.x_axis);
+  // Serial.print(rxData.x_axis);
   // Serial.print("\t");
-  // Serial.print(myData.y_axis);
+  // Serial.print(rxData.y_axis);
   // Serial.print("\t");
-  // Serial.print(myData.pot_1);
+  // Serial.print(rxData.pot_1);
   // Serial.print("\t");
-  // Serial.print(myData.sw_1);
+  // Serial.print(rxData.sw_1);
   // Serial.print("\t");
-  // Serial.println(myData.sw_2);
+  // Serial.println(rxData.sw_2);
   }
 }
 

@@ -6,6 +6,8 @@ bool motors_on = true;                  // turns on and off all motors in one bo
 // PARALEL_AC_BD      - for 2x2 motors with A C outputs and B D outputs being paralel.
 
 uint8_t MOTOR_LAYOUT = PARALEL_AC_BD;   // selects motor layout betwheen 2 paralel, and 4 individual
+float battery_critical_v = 3.0;
+#define cell_count 3.0;
 
 // servo
 int servo_1_init_position = 0;          // initial servo position

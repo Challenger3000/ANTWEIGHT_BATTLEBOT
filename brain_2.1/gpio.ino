@@ -4,17 +4,19 @@ void init_gpio(){
 }
 
 void update_gpio(){
-  if(!digitalRead(BUTTON)){
-    switch_wireles_mode();
-    delay(500);
+  if(millis() - last_gpio_update > 100){
+    last_gpio_update = millis();
+    send_voltage_telemety();
+    // delay(500);
+    if(!digitalRead(BUTTON)){
+      switch_wireles_mode();
+    }
+    // float v_bat = 0.0067441860 * (float)analogRead(VSENSE);
+    // Serial.print("V_bat: ");
+    // Serial.print(v_bat);
+    // Serial.print("\tV_cell: ");
+    // Serial.println(v_bat/3.0);
   }
 }
 
   // imu_print();
-  // if(Serial){
-  // double v_bat = 0.0067441860 * (double)analogRead(VSENSE);
-  // Serial.print("V_bat: ");
-  // Serial.print(v_bat);
-  // Serial.print("\tV_cell: ");
-  // Serial.println(v_bat/3.0);
-  // }

@@ -7,34 +7,6 @@ enum TX_STATES {
 uint8_t state = SENDING;
 bool new_rx_data = false;
 
-// led code start
-#include <FastLED.h>
-#define NUM_LEDS 4
-#define DATA_PIN 1
-CRGB leds[NUM_LEDS];
-unsigned long last_led_update = 0;
-bool led_warning_phase = false;
-enum LED_STATUS_STATES {
-  RX_RECEIVING = 0,
-  RX_LOST = 1,
-};
-void init_led(){
-  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB
-  leds[0] = CRGB(255, 255, 255);
-  FastLED.show();
-  delay(10);
-  leds[0] = CRGB(0, 0, 0);
-  FastLED.show();
-}
-
-void led_color(uint8_t red, uint8_t green, uint8_t blue){
-  leds[0] = CRGB(green, red, blue);
-  FastLED.show();
-}
-
-
-// led code end
-
 // eeprom code start
 #define EEPROM_SIZE 200
 #define EEPROM_ADDRES 100
@@ -86,16 +58,19 @@ void init_eeprom(){
 }
 // eeprom code end
 
-// esp now
+// esp now code start
 #include "esp_wifi.h"
 #include <esp_now.h>
 #include <WiFi.h>
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 #define rssi_list_size 50
 #define binding_ch 14
 uint8_t current_ch = 0;
 uint8_t sending_ch = 5;
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 char pmk_key_str[16];
+uint16_t failed_packet_count = 0;
+bool rx_lost = true;
 
 struct rssi_data {
   uint8_t mac_address[6];
@@ -112,6 +87,7 @@ unsigned long last_strongest_receive = 0;
 unsigned long last_sendtime = 0;
 unsigned long last_receive=0;
 esp_now_peer_info_t peerInfo;
+// esp now code end
 
 // hardware pins
 #define g_x 4
@@ -121,9 +97,17 @@ esp_now_peer_info_t peerInfo;
 #define switch_1_down 11
 #define switch_2_up   13
 #define switch_2_down 14
+#define BTN_A 9
+#define BTN_B 21
+#define vbat 8
 
 // variables
-typedef struct struct_message {
+typedef struct struct_message_rx {
+  float     volatage;
+} struct_message_rx;
+struct_message_rx rxData;
+
+typedef struct struct_message_tx {
   uint8_t   mode;
   uint8_t   id;
   int32_t   x_axis;
@@ -144,13 +128,85 @@ typedef struct struct_message {
   uint8_t   ch16;
   char string[16];
   uint8_t mac[6];
-} struct_message;
-struct_message myData;
+} struct_message_tx;
+struct_message_tx txData;
 int ch1_offset = 0;
 int ch2_offset = 0;
 int motorA = 0;
 int motorB = 0;
 uint8_t expo_B = 0;
+
+
+// led code start
+#include <FastLED.h>
+#define NUM_LEDS 4
+#define DATA_PIN 1
+CRGB leds[NUM_LEDS];
+unsigned long last_led_update = 0;
+bool led_warning_phase = false;
+
+void init_led(){
+  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB
+  leds[0] = CRGB(10, 10, 10);
+  FastLED.show();
+  delay(10);
+  leds[0] = CRGB(0, 0, 0);
+  FastLED.show();
+}
+
+void led_color(uint8_t led_number,uint8_t red, uint8_t green, uint8_t blue){
+  if(led_number < NUM_LEDS && led_number >= 0){
+    leds[led_number] = CRGB(green, red, blue);
+    FastLED.show();
+  }
+  FastLED.show();
+}
+void update_leds(){
+  // led 0 is showing battery status
+  led_color(0, 0, 10, 0);
+
+  // led 1 is showing robots battery status
+  // 4.1v - green
+  // 3.8v - yellow
+  // 3.5v - red
+  // 3.1v - red blinking
+  if(rx_lost){
+    led_color(1, 0, 0, 0);
+  }else if(rxData.volatage > 4.1){
+    led_color(1, 0, 10, 0);
+  }else if(rxData.volatage > 3.8){
+    led_color(1, 10, 10, 0);
+  }else if(rxData.volatage > 3.5){
+    led_color(1, 10, 0, 0);
+  }else if(rxData.volatage > 3.1){
+    if(millis() % 500 < 250){
+      led_color(1, 10, 0, 0);
+    }else{
+      led_color(1, 255, 0, 0);
+    }
+  }else{
+    led_color(1, 10, 0, 0);
+  }
+
+  // led 2 is showing connection status
+  if(state == SENDING){
+    if(!rx_lost){
+      led_color(2, 0, 10, 0);
+    }else{
+      led_color(2, 10, 10, 0);
+    }
+  }else if(state == BINDING){
+    if(millis() % 500 < 250){
+      led_color(2, 0, 0, 10);
+    }else{
+      led_color(2, 0, 10, 20);
+    }
+  }
+
+  // led 3 is free, to be used as a general purpouse indicator
+  led_color(3, 10, 10, 10);
+}
+// led code end
 
 // rssi
 typedef struct {
@@ -184,24 +240,24 @@ void promiscuous_rx_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
 }
 
 void init_data_structures(){
-  myData.mode   = 0;
-  myData.id     = 0;
-  myData.x_axis = 0;
-  myData.y_axis = 0;
-  myData.pot_1  = 0;
-  myData.sw_1   = 0;
-  myData.sw_2   = 0;
-  myData.ch06   = 0;
-  myData.ch07   = 0;
-  myData.ch08   = 0;
-  myData.ch09   = 0;
-  myData.ch10   = 0;
-  myData.ch11   = 0;
-  myData.ch12   = 0;
-  myData.ch13   = 0;
-  myData.ch14   = 0;
-  myData.ch15   = 0;
-  myData.ch16   = 0;
+  txData.mode   = 0;
+  txData.id     = 0;
+  txData.x_axis = 0;
+  txData.y_axis = 0;
+  txData.pot_1  = 0;
+  txData.sw_1   = 0;
+  txData.sw_2   = 0;
+  txData.ch06   = 0;
+  txData.ch07   = 0;
+  txData.ch08   = 0;
+  txData.ch09   = 0;
+  txData.ch10   = 0;
+  txData.ch11   = 0;
+  txData.ch12   = 0;
+  txData.ch13   = 0;
+  txData.ch14   = 0;
+  txData.ch15   = 0;
+  txData.ch16   = 0;
 }
 
 void print_rssi_list(){
@@ -256,22 +312,22 @@ void binding(){
     }
 
     sending_ch = 2;
-    myData.mode   = 43;
-    myData.id     = 43;
-    myData.x_axis = 43;
-    myData.y_axis = 43;
-    myData.pot_1  = 43;
-    myData.sw_1   = 43;
-    myData.sw_2   = 43;
-    myData.ch10   = sending_ch;
-    strcpy(myData.string, pmk_key_str);
-    memcpy(myData.mac, rssi_list[strongest_rssi_index].mac_address, 6);
+    txData.mode   = 43;
+    txData.id     = 43;
+    txData.x_axis = 43;
+    txData.y_axis = 43;
+    txData.pot_1  = 43;
+    txData.sw_1   = 43;
+    txData.sw_2   = 43;
+    txData.ch10   = sending_ch;
+    strcpy(txData.string, pmk_key_str);
+    memcpy(txData.mac, rssi_list[strongest_rssi_index].mac_address, 6);
 
 
     Serial.print("Password: ");
     for (int i = 0; i < 16; i++) {
       Serial.print("0x");
-      Serial.print((byte)myData.string[i], HEX);
+      Serial.print((byte)txData.string[i], HEX);
       Serial.print(" ");
     }
     Serial.println();
@@ -279,17 +335,17 @@ void binding(){
     EEPROM_DATA.binding_status = 1;
     EEPROM_DATA.bound_ch = sending_ch;
     memcpy(EEPROM_DATA.bound_mac, rssi_list[strongest_rssi_index].mac_address, sizeof(EEPROM_DATA.bound_mac));
-    memcpy(EEPROM_DATA.encryption_key, myData.string, sizeof(myData.string));
+    memcpy(EEPROM_DATA.encryption_key, txData.string, sizeof(txData.string));
     EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
     EEPROM.commit();
 
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
     delay(100);
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
     delay(100);
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
     delay(100);
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
     esp_wifi_set_promiscuous(false);
 
     change_channel(sending_ch);
@@ -297,7 +353,7 @@ void binding(){
     memcpy(peerInfo.peer_addr, rssi_list[strongest_rssi_index].mac_address, 6);
     peerInfo.channel = sending_ch;
     peerInfo.encrypt = true;
-    memcpy(peerInfo.lmk, myData.string, 16);
+    memcpy(peerInfo.lmk, txData.string, 16);
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
       Serial.println("Failed to add peer");
       return;
@@ -305,7 +361,8 @@ void binding(){
     Serial.print("Added: ");
     print_MAC(peerInfo.peer_addr);
     Serial.print("Channel: ");
-    Serial.println(peerInfo.channel);
+    Serial.println(peerInfo.channel);    
+    esp_now_register_send_cb(OnDataSent);
   
     state = SENDING;
     return;
@@ -319,26 +376,26 @@ void binding(){
 
   if(millis()-last_sendtime > 200){
     last_sendtime = millis();
-    myData.mode   = 42;
-    myData.id     = 42;
-    myData.x_axis = 42;
-    myData.y_axis = 42;
-    myData.pot_1  = 42;
-    myData.sw_1   = 42;
-    myData.sw_2   = 42;
-    myData.ch06   = 42;
-    myData.ch07   = 42;
-    myData.ch08   = 42;
-    myData.ch09   = 42;
-    myData.ch10   = 42;
-    myData.ch11   = 42;
-    myData.ch12   = 42;
-    myData.ch13   = 42;
-    myData.ch14   = 42;
-    myData.ch15   = 42;
-    myData.ch16   = 42;
+    txData.mode   = 42;
+    txData.id     = 42;
+    txData.x_axis = 42;
+    txData.y_axis = 42;
+    txData.pot_1  = 42;
+    txData.sw_1   = 42;
+    txData.sw_2   = 42;
+    txData.ch06   = 42;
+    txData.ch07   = 42;
+    txData.ch08   = 42;
+    txData.ch09   = 42;
+    txData.ch10   = 42;
+    txData.ch11   = 42;
+    txData.ch12   = 42;
+    txData.ch13   = 42;
+    txData.ch14   = 42;
+    txData.ch15   = 42;
+    txData.ch16   = 42;
     // Serial.println("SENDING BINDING");
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
   }
 }
 
@@ -355,13 +412,13 @@ void print_MAC(const uint8_t * mac_addr){
 }
 
 bool received_binding_packet(){
-  if(myData.mode == 42
-  && myData.id == 42
-  && myData.x_axis == 42
-  && myData.y_axis == 42
-  && myData.pot_1 == 42
-  && myData.sw_1 == 42
-  && myData.sw_2 == 42){
+  if(txData.mode == 42
+  && txData.id == 42
+  && txData.x_axis == 42
+  && txData.y_axis == 42
+  && txData.pot_1 == 42
+  && txData.sw_1 == 42
+  && txData.sw_2 == 42){
     return true;
   } else {
     return false;
@@ -377,8 +434,22 @@ int findMacAddress(const uint8_t* mac_address) {
   return -1;
 }
 
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  if(status == ESP_NOW_SEND_SUCCESS){
+    failed_packet_count = 0;
+    rx_lost = false;
+  }else{
+    failed_packet_count++;
+    if(failed_packet_count > 5){
+      rx_lost = true;
+    }
+  }
+
+  // Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&myData, incomingData, sizeof(myData));
+  memcpy(&txData, incomingData, sizeof(txData));
   last_receive = millis();
   
   if(state == BINDING){
@@ -422,18 +493,25 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     }
   }else if(state == SENDING){
     new_rx_data = true;
+    memcpy(&rxData, incomingData, sizeof(rxData));
+    Serial.print("Bytes received: ");
+    Serial.println(len);
+    Serial.print("v: ");
+    Serial.println(rxData.volatage);
+    Serial.println();
+
   }
 
   // Serial.print("RECIEVED: ");
-  // Serial.print(myData.x_axis);
+  // Serial.print(txData.x_axis);
   // Serial.print("\t");
-  // Serial.print(myData.y_axis);
+  // Serial.print(txData.y_axis);
   // Serial.print("\t");
-  // Serial.print(myData.pot_1);
+  // Serial.print(txData.pot_1);
   // Serial.print("\t");
-  // Serial.print(myData.sw_1);
+  // Serial.print(txData.sw_1);
   // Serial.print("\t");
-  // Serial.println(myData.sw_2);
+  // Serial.println(txData.sw_2);
   
 }
 
@@ -464,20 +542,21 @@ void init_esp_now(){
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
   }else if(state == SENDING){
-      sending_ch = EEPROM_DATA.bound_ch;
-      memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
-      peerInfo.channel = EEPROM_DATA.bound_ch;  
-      peerInfo.encrypt = true;      
-      memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
-      if (esp_now_add_peer(&peerInfo) != ESP_OK){
-        Serial.println("Failed to add peer");
-        return;
-      }
+    sending_ch = EEPROM_DATA.bound_ch;
+    memcpy(peerInfo.peer_addr, EEPROM_DATA.bound_mac, 6);
+    peerInfo.channel = EEPROM_DATA.bound_ch;  
+    peerInfo.encrypt = true;      
+    memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+      Serial.println("Failed to add peer");
+      return;
+    }
     Serial.println("Sending mode");
     change_channel(sending_ch);
     esp_wifi_set_promiscuous(false);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
     esp_now_register_recv_cb(OnDataRecv);
+    esp_now_register_send_cb(OnDataSent);
   }
 }
 
@@ -598,54 +677,55 @@ uint8_t get_switch_pos_2(){
 void send_joysitck(){
   calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095), 0.3);
 
-  myData.mode   = 1;
-  myData.id     = 1;
+  txData.mode   = 1;
+  txData.id     = 1;
   if(get_switch_pos_2()==1){
-    myData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.5);
+    txData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.5);
   }else if(get_switch_pos_2()==2){
-    myData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.25);
+    txData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.25);
   }else if(get_switch_pos_2()==3){
-    myData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
+    txData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
   }
-  myData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low ,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095);
-  myData.pot_1  = analogRead(pot);
-  myData.sw_1   = get_switch_pos_1();
-  myData.sw_2   = get_switch_pos_2();
-  myData.ch06   = 50;
-  myData.ch07   = 50;
-  myData.ch08   = 50;
-  myData.ch09   = 50;
-  myData.ch10   = 50;
-  myData.ch11   = 50;
-  myData.ch12   = 50;
-  myData.ch13   = 50;
-  myData.ch14   = 50;
-  myData.ch15   = 50;
-  myData.ch16   = 130;
-  memcpy(myData.mac, peerInfo.peer_addr, 6);
+  txData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low ,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095);
+  txData.pot_1  = analogRead(pot);
+  txData.sw_1   = get_switch_pos_1();
+  txData.sw_2   = get_switch_pos_2();
+  txData.ch06   = 50;
+  txData.ch07   = 50;
+  txData.ch08   = 50;
+  txData.ch09   = 50;
+  txData.ch10   = 50;
+  txData.ch11   = 50;
+  txData.ch12   = 50;
+  txData.ch13   = 50;
+  txData.ch14   = 50;
+  txData.ch15   = 50;
+  txData.ch16   = 130;
+  memcpy(txData.mac, peerInfo.peer_addr, 6);
 
   Serial.print("X: ");
-  Serial.print(myData.x_axis);
+  Serial.print(txData.x_axis);
   Serial.print("\tY: ");
-  Serial.print(myData.y_axis);
+  Serial.print(txData.y_axis);
   Serial.print("\tPot: ");
-  Serial.print(myData.pot_1);
+  Serial.print(txData.pot_1);
   Serial.print("\tSw1: ");
-  Serial.print(myData.sw_1);
+  Serial.print(txData.sw_1);
   Serial.print("\tSw2: ");
-  Serial.println(myData.sw_2);
+  Serial.println(txData.sw_2);
   
 
-  // esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-  esp_now_send(peerInfo.peer_addr, (uint8_t *) &myData, sizeof(myData));
+  // esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
+  esp_now_send(peerInfo.peer_addr, (uint8_t *) &txData, sizeof(txData));
 }
 
 void update_states(){
-  if(get_switch_pos_1()==3 && analogRead(pot) < 50){
+  if(!digitalRead(BTN_B)){
     state = BINDING;
   }
 }
 
+// gpio code start
 void init_gpio(){
   pinMode(g_x, INPUT);
   pinMode(g_y, INPUT);
@@ -654,8 +734,12 @@ void init_gpio(){
   pinMode(switch_1_down, INPUT_PULLUP);
   pinMode(switch_2_up  , INPUT_PULLUP);
   pinMode(switch_2_down, INPUT_PULLUP);
+  pinMode(BTN_A, INPUT_PULLUP);
+  pinMode(BTN_B, INPUT_PULLUP);
+  pinMode(vbat, INPUT);
   delay(150);
 }
+// gpio code end
 
 void setup() {  
 
@@ -664,7 +748,6 @@ void setup() {
   //   ;
   // }
   init_led();
-  led_color(0, 255, 0);
 
 
   init_eeprom();
@@ -672,7 +755,7 @@ void setup() {
 
 
 
-  if (analogRead(g_x) < 1000 && analogRead(g_y) < 1000) {
+  if (!digitalRead(BTN_B)) {
     state = BINDING;
   } else {    
     Serial.print("analog reads: ");
@@ -719,10 +802,24 @@ void setup() {
 
 void loop() {
   // update_states();
+  // Serial.print("Voltage: ");
+  // Serial.println(analogRead(vbat)*0.0048828125*2);
+  // Serial.println();
+  // Serial.println(analogRead(vbat));
+
+
+  if(millis()-last_led_update > 100){
+    last_led_update = millis();
+    update_leds();
+  }
+
   switch (state) {
     case SENDING:
 
-      if(millis()-last_sendtime > 50){
+      if(!rx_lost && millis()-last_sendtime > 50){
+        last_sendtime = millis();
+        send_joysitck();
+      }else if(rx_lost && millis()-last_sendtime > 1000){
         last_sendtime = millis();
         send_joysitck();
       }

@@ -28,7 +28,6 @@ void led_update(){
       case RX_LOST:
         led_color(10, 0, 0);
         break;
+    }
   }
-  }
-
 }

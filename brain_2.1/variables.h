@@ -8,29 +8,7 @@ int motorA_output = 0;
 int motorB_output = 0;
 int motorC_output = 0;
 int motorD_output = 0;
-typedef struct struct_message {
-  uint8_t   mode;
-  uint8_t   id;
-  int32_t   x_axis;
-  int32_t   y_axis;
-  uint32_t  pot_1;
-  uint8_t   sw_1;
-  uint8_t   sw_2;
-  uint8_t   ch06;
-  uint8_t   ch07;
-  uint8_t   ch08;
-  uint8_t   ch09;
-  uint8_t   ch10;
-  uint8_t   ch11;
-  uint8_t   ch12;
-  uint8_t   ch13;
-  uint8_t   ch14;
-  uint8_t   ch15;
-  uint8_t   ch16;
-  char string[16];
-  uint8_t mac[6];
-} struct_message;
-struct_message myData;
+
 // general variables end
 
 
@@ -294,7 +272,36 @@ enum DRV8908_REGISTERS {
 // motor driver variables end
 
 
-// esp_now reciever
+// esp_now variables start
+typedef struct struct_message_tx {
+  float     volatage;
+} struct_message_tx;
+struct_message_tx txData;
+
+typedef struct struct_message {
+  uint8_t   mode;
+  uint8_t   id;
+  int32_t   x_axis;
+  int32_t   y_axis;
+  uint32_t  pot_1;
+  uint8_t   sw_1;
+  uint8_t   sw_2;
+  uint8_t   ch06;
+  uint8_t   ch07;
+  uint8_t   ch08;
+  uint8_t   ch09;
+  uint8_t   ch10;
+  uint8_t   ch11;
+  uint8_t   ch12;
+  uint8_t   ch13;
+  uint8_t   ch14;
+  uint8_t   ch15;
+  uint8_t   ch16;
+  char string[16];
+  uint8_t mac[6];
+} struct_message;
+struct_message rxData;
+
 #include "esp_wifi.h"
 #include <esp_now.h>
 #define binding_ch 14
@@ -307,12 +314,14 @@ bool binding_mode = false;
 unsigned long last_sendtime = 0;
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 esp_now_peer_info_t peerInfo;
+unsigned long last_voltage_send = 0;
 // esp_now variables end
 
 
 // gpio variables start
 #define BUTTON 4
 #define VSENSE 10
+unsigned long last_gpio_update = 0;
 // gpio variables end
 
 

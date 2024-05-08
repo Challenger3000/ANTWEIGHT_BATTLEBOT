@@ -21,7 +21,7 @@ void update_pid(){
   Input = (double)filtered_signal;
   myPID.Compute();
 
-  // if(myData.sw_1 == 3){
+  // if(rxData.sw_1 == 3){
   //   Serial.print("set:");
   //   Serial.print(Setpoint,3);
   //   Serial.print(",filt:");
