@@ -32,29 +32,29 @@ struct_eeprom EEPROM_DATA;
 void init_eeprom(){  
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
-	Serial.println();
-	Serial.print("EEPROM Binding Status: ");
-	Serial.println(EEPROM_DATA.binding_status);
-	Serial.print("EEPROM Bound Channel: ");
-	Serial.println(EEPROM_DATA.bound_ch);
-	Serial.print("EEPROM Bound MAC Address: ");
-	for (int i = 0; i < 6; i++) {
-			Serial.print(EEPROM_DATA.bound_mac[i], HEX);
-			if (i < 5) {
-					Serial.print(":");
-			}
-	}
-	Serial.println();
-	Serial.print("EEPROM Encryption Key Size: ");
-	Serial.println(sizeof(EEPROM_DATA.encryption_key));
-	Serial.print("EEPROM Encryption Key: ");
-	for (int i = 0; i < 16; i++) {
-		Serial.print(EEPROM_DATA.encryption_key[i], HEX);
-		if (i < 15) {
-			Serial.print(":");
-		}
-	}
-	Serial.println();
+	// Serial.println();
+	// Serial.print("EEPROM Binding Status: ");
+	// Serial.println(EEPROM_DATA.binding_status);
+	// Serial.print("EEPROM Bound Channel: ");
+	// Serial.println(EEPROM_DATA.bound_ch);
+	// Serial.print("EEPROM Bound MAC Address: ");
+	// for (int i = 0; i < 6; i++) {
+	// 		Serial.print(EEPROM_DATA.bound_mac[i], HEX);
+	// 		if (i < 5) {
+	// 				Serial.print(":");
+	// 		}
+	// }
+	// Serial.println();
+	// Serial.print("EEPROM Encryption Key Size: ");
+	// Serial.println(sizeof(EEPROM_DATA.encryption_key));
+	// Serial.print("EEPROM Encryption Key: ");
+	// for (int i = 0; i < 16; i++) {
+	// 	Serial.print(EEPROM_DATA.encryption_key[i], HEX);
+	// 	if (i < 15) {
+	// 		Serial.print(":");
+	// 	}
+	// }
+	// Serial.println();
 }
 // eeprom code end
 
@@ -93,10 +93,10 @@ esp_now_peer_info_t peerInfo;
 #define g_x 4
 #define g_y 5
 #define pot 6
-#define switch_1_up   12
-#define switch_1_down 11
-#define switch_2_up   13
-#define switch_2_down 14
+#define switch_1      14
+#define switch_2_up   12
+#define switch_2_down 11
+#define switch_3      13
 #define BTN_A 9
 #define BTN_B 21
 #define vbat 8
@@ -115,9 +115,9 @@ typedef struct struct_message_tx {
   uint32_t  pot_1;
   uint8_t   sw_1;
   uint8_t   sw_2;
-  uint8_t   ch06;
-  uint8_t   ch07;
-  uint8_t   ch08;
+  uint8_t   sw_3;
+  uint8_t   btn_A;
+  uint8_t   btn_B;
   uint8_t   ch09;
   uint8_t   ch10;
   uint8_t   ch11;
@@ -162,46 +162,53 @@ void led_color(uint8_t led_number,uint8_t red, uint8_t green, uint8_t blue){
   FastLED.show();
 }
 void update_leds(){
-  // led 0 is showing battery status
-  led_color(0, 0, 10, 0);
+  // led 0 is showing battery status  
+  // Serial.println();
+  // Serial.println((float)analogRead(vbat)/600.0);
+  float battery_voltage = (float)analogRead(vbat)/600.0;
+  if(battery_voltage > 4.0){
+    led_color(0, 0, 255, 0);
+  }else if(battery_voltage > 3.8){
+    led_color(0, 255, 255, 0);
+  }else if(battery_voltage > 3.5){
+    led_color(0, 255, 0, 0);
+  }else if(battery_voltage > 3.1){
+    if(millis() % 500 < 250){
+      led_color(0, 0, 0, 0);
+    }else{
+      led_color(0, 255, 0, 0);
+    }
+  }
 
   // led 1 is showing robots battery status
   // 4.1v - green
   // 3.8v - yellow
   // 3.5v - red
   // 3.1v - red blinking
-  if(rx_lost){
+  if(state == BINDING){
+    if(millis() % 500 < 250){
+      led_color(1, 0, 0, 255);
+    }else{
+      led_color(1, 0, 70, 128);
+    }
+  }else if(rx_lost){
     led_color(1, 0, 0, 0);
-  }else if(rxData.volatage > 4.1){
-    led_color(1, 0, 10, 0);
+  }else if(rxData.volatage > 4.0){
+    led_color(1, 0, 255, 0);
   }else if(rxData.volatage > 3.8){
-    led_color(1, 10, 10, 0);
+    led_color(1, 255, 255, 0);
   }else if(rxData.volatage > 3.5){
-    led_color(1, 10, 0, 0);
+    led_color(1, 255, 0, 0);
   }else if(rxData.volatage > 3.1){
     if(millis() % 500 < 250){
-      led_color(1, 10, 0, 0);
+      led_color(1, 0, 0, 0);
     }else{
       led_color(1, 255, 0, 0);
     }
-  }else{
-    led_color(1, 10, 0, 0);
   }
 
-  // led 2 is showing connection status
-  if(state == SENDING){
-    if(!rx_lost){
-      led_color(2, 0, 10, 0);
-    }else{
-      led_color(2, 10, 10, 0);
-    }
-  }else if(state == BINDING){
-    if(millis() % 500 < 250){
-      led_color(2, 0, 0, 10);
-    }else{
-      led_color(2, 0, 10, 20);
-    }
-  }
+  // led 2 is showing connection status  
+  led_color(2, 10, 10, 10);
 
   // led 3 is free, to be used as a general purpouse indicator
   led_color(3, 10, 10, 10);
@@ -247,9 +254,9 @@ void init_data_structures(){
   txData.pot_1  = 0;
   txData.sw_1   = 0;
   txData.sw_2   = 0;
-  txData.ch06   = 0;
-  txData.ch07   = 0;
-  txData.ch08   = 0;
+  txData.sw_3   = 0;
+  txData.btn_A   = 0;
+  txData.btn_B   = 0;
   txData.ch09   = 0;
   txData.ch10   = 0;
   txData.ch11   = 0;
@@ -311,7 +318,7 @@ void binding(){
       pmk_key_str[i] = randomByte;  // Format byte as hex and append
     }
 
-    sending_ch = 2;
+    sending_ch = random(0, 13);
     txData.mode   = 43;
     txData.id     = 43;
     txData.x_axis = 43;
@@ -383,9 +390,9 @@ void binding(){
     txData.pot_1  = 42;
     txData.sw_1   = 42;
     txData.sw_2   = 42;
-    txData.ch06   = 42;
-    txData.ch07   = 42;
-    txData.ch08   = 42;
+    txData.sw_3   = 42;
+    txData.btn_A   = 42;
+    txData.btn_B   = 42;
     txData.ch09   = 42;
     txData.ch10   = 42;
     txData.ch11   = 42;
@@ -494,11 +501,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   }else if(state == SENDING){
     new_rx_data = true;
     memcpy(&rxData, incomingData, sizeof(rxData));
-    Serial.print("Bytes received: ");
-    Serial.println(len);
-    Serial.print("v: ");
-    Serial.println(rxData.volatage);
-    Serial.println();
+    // Serial.print("Bytes received: ");
+    // Serial.println(len);
+    // Serial.print("v: ");
+    // Serial.println(rxData.volatage);
+    // Serial.println();
 
   }
 
@@ -551,7 +558,7 @@ void init_esp_now(){
       Serial.println("Failed to add peer");
       return;
     }
-    Serial.println("Sending mode");
+    // Serial.println("Sending mode");
     change_channel(sending_ch);
     esp_wifi_set_promiscuous(false);
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
@@ -646,32 +653,38 @@ uint32_t calculate_expo_12_Bit(int rc_in, float expo){
 
 }
 
-uint8_t get_switch_pos_1(){
-  bool sw_pos_up = digitalRead(switch_1_up);
-  bool sw_pos_down = digitalRead(switch_1_down);
-  if(sw_pos_up && sw_pos_down){
-    return 2;
-  }
-  if(!sw_pos_up && sw_pos_down){
-    return 1;
-  }
-  if(sw_pos_up && !sw_pos_down){
-    return 3;
-  }
+int get_pot(){
+  return analogRead(pot);
 }
 
-uint8_t get_switch_pos_2(){
+uint8_t get_switch_1(){
+  return !digitalRead(switch_1);
+}
+
+uint8_t get_switch_2(){
   bool sw_pos_up = digitalRead(switch_2_up);
   bool sw_pos_down = digitalRead(switch_2_down);
   if(sw_pos_up && sw_pos_down){
-    return 2;
-  }
-  if(!sw_pos_up && sw_pos_down){
     return 1;
   }
-  if(sw_pos_up && !sw_pos_down){
-    return 3;
+  if(!sw_pos_up && sw_pos_down){
+    return 0;
   }
+  if(sw_pos_up && !sw_pos_down){
+    return 2;
+  }
+}
+
+uint8_t get_switch_3(){
+  return digitalRead(switch_3);
+}
+
+uint8_t get_button_A(){
+  return !digitalRead(BTN_A);
+}
+
+uint8_t get_button_B(){
+  return !digitalRead(BTN_B);
 }
 
 void send_joysitck(){
@@ -679,20 +692,23 @@ void send_joysitck(){
 
   txData.mode   = 1;
   txData.id     = 1;
-  if(get_switch_pos_2()==1){
-    txData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.5);
-  }else if(get_switch_pos_2()==2){
-    txData.x_axis = calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.25);
-  }else if(get_switch_pos_2()==3){
-    txData.x_axis = mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
+  // if(get_switch_2()==1){
+  if(false){
+    txData.x_axis = 4095 -  calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.5);
+  // }else if(get_switch_2()==2){
+  }else if(true){
+    txData.x_axis = 4095 -  calculate_expo_12_Bit(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095),0.25);
+  // }else if(get_switch_2()==3){
+  }else if(false){
+    txData.x_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095);
   }
-  txData.y_axis = 4095 - mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low ,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095);
+  txData.y_axis =mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low ,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095);
   txData.pot_1  = analogRead(pot);
-  txData.sw_1   = get_switch_pos_1();
-  txData.sw_2   = get_switch_pos_2();
-  txData.ch06   = 50;
-  txData.ch07   = 50;
-  txData.ch08   = 50;
+  txData.sw_1   = get_switch_1();
+  txData.sw_2   = get_switch_2();
+  txData.sw_3   = get_switch_2();
+  txData.btn_A  = get_button_A();
+  txData.btn_B  = get_button_B();
   txData.ch09   = 50;
   txData.ch10   = 50;
   txData.ch11   = 50;
@@ -706,23 +722,17 @@ void send_joysitck(){
   Serial.print("X: ");
   Serial.print(txData.x_axis);
   Serial.print("\tY: ");
-  Serial.print(txData.y_axis);
-  Serial.print("\tPot: ");
-  Serial.print(txData.pot_1);
-  Serial.print("\tSw1: ");
-  Serial.print(txData.sw_1);
-  Serial.print("\tSw2: ");
-  Serial.println(txData.sw_2);
+  Serial.println(txData.y_axis);
+  // Serial.print("\tPot: ");
+  // Serial.print(txData.pot_1);
+  // Serial.print("\tSw1: ");
+  // Serial.print(txData.sw_1);
+  // Serial.print("\tSw2: ");
+  // Serial.println(txData.sw_2);
   
 
   // esp_now_send(broadcastAddress, (uint8_t *) &txData, sizeof(txData));
   esp_now_send(peerInfo.peer_addr, (uint8_t *) &txData, sizeof(txData));
-}
-
-void update_states(){
-  if(!digitalRead(BTN_B)){
-    state = BINDING;
-  }
 }
 
 // gpio code start
@@ -730,10 +740,10 @@ void init_gpio(){
   pinMode(g_x, INPUT);
   pinMode(g_y, INPUT);
   pinMode(pot, INPUT);
-  pinMode(switch_1_up  , INPUT_PULLUP);
-  pinMode(switch_1_down, INPUT_PULLUP);
-  pinMode(switch_2_up  , INPUT_PULLUP);
+  pinMode(switch_1  , INPUT_PULLUP);
+  pinMode(switch_2_up, INPUT_PULLUP);
   pinMode(switch_2_down, INPUT_PULLUP);
+  pinMode(switch_3  , INPUT_PULLUP);
   pinMode(BTN_A, INPUT_PULLUP);
   pinMode(BTN_B, INPUT_PULLUP);
   pinMode(vbat, INPUT);
@@ -755,14 +765,9 @@ void setup() {
 
 
 
-  if (!digitalRead(BTN_B)) {
+  if (get_button_B()) {
     state = BINDING;
-  } else {    
-    Serial.print("analog reads: ");
-    Serial.print(analogRead(g_x));
-    Serial.print(" ");
-    Serial.println(analogRead(g_y));
-
+  } else {
     if (EEPROM_DATA.binding_status == 1) {
       state = SENDING;
     } else {
@@ -779,38 +784,52 @@ void setup() {
     ch2_offset = EEPROM_DATA.offset_y;
   }
 
-  Serial.print(" eeprom_structure_version = ");
-  Serial.println(EEPROM_DATA.eeprom_structure_version);
-  Serial.print(" reserved = ");
-  Serial.println(EEPROM_DATA.reserved);
-  Serial.print(" calibration needed = ");
-  Serial.println(EEPROM_DATA.need_to_calibrate);
-  Serial.print(" calib_x_low = ");
-  Serial.println(EEPROM_DATA.calib_x_low);
-  Serial.print(" calib_x_high = ");
-  Serial.println(EEPROM_DATA.calib_x_high);
-  Serial.print(" calib_y_low = ");
-  Serial.println(EEPROM_DATA.calib_y_low);
-  Serial.print(" calib_y_high = ");
-  Serial.println(EEPROM_DATA.calib_y_high);
-  Serial.print(" offset_x = ");
-  Serial.println(EEPROM_DATA.offset_x);
-  Serial.print(" offset_y = ");
-  Serial.println(EEPROM_DATA.offset_y);
+  // Serial.print(" eeprom_structure_version = ");
+  // Serial.println(EEPROM_DATA.eeprom_structure_version);
+  // Serial.print(" reserved = ");
+  // Serial.println(EEPROM_DATA.reserved);
+  // Serial.print(" calibration needed = ");
+  // Serial.println(EEPROM_DATA.need_to_calibrate);
+  // Serial.print(" calib_x_low = ");
+  // Serial.println(EEPROM_DATA.calib_x_low);
+  // Serial.print(" calib_x_high = ");
+  // Serial.println(EEPROM_DATA.calib_x_high);
+  // Serial.print(" calib_y_low = ");
+  // Serial.println(EEPROM_DATA.calib_y_low);
+  // Serial.print(" calib_y_high = ");
+  // Serial.println(EEPROM_DATA.calib_y_high);
+  // Serial.print(" offset_x = ");
+  // Serial.println(EEPROM_DATA.offset_x);
+  // Serial.print(" offset_y = ");
+  // Serial.println(EEPROM_DATA.offset_y);
   
 }
 
 void loop() {
-  // update_states();
-  // Serial.print("Voltage: ");
-  // Serial.println(analogRead(vbat)*0.0048828125*2);
-  // Serial.println();
-  // Serial.println(analogRead(vbat));
 
 
-  if(millis()-last_led_update > 100){
+  if(millis()-last_led_update > 250){
     last_led_update = millis();
     update_leds();
+
+    // print all hardware pin values
+    
+    // Serial.print("g_x: ");
+    // Serial.print(analogRead(g_x));
+    // Serial.print("\tg_y: ");
+    // Serial.print(analogRead(g_y));
+    // Serial.print("\tpot: ");
+    // Serial.print(analogRead(pot));
+    // Serial.print("\tsw1: ");
+    // Serial.print(get_switch_1());
+    // Serial.print("\tsw2: ");
+    // Serial.print(get_switch_2());
+    // Serial.print("\tsw3: ");
+    // Serial.print(get_switch_3());
+    // Serial.print("\tBTN_A: ");
+    // Serial.print(get_button_A());
+    // Serial.print("\tBTN_B: ");
+    // Serial.println(get_button_B());
   }
 
   switch (state) {

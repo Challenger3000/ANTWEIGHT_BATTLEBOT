@@ -1,5 +1,5 @@
 void send_voltage_telemety(){
-  if(millis() - last_voltage_send > 1000){
+  if(!wireles_mode && millis() - last_voltage_send > 1000){
     last_voltage_send = millis();
     float v_bat = 0.0067441860 * (float)analogRead(VSENSE);
     txData.volatage = v_bat/cell_count;
@@ -55,9 +55,9 @@ bool binding(){
     rxData.pot_1  = 42;
     rxData.sw_1   = 42;
     rxData.sw_2   = 42;
-    rxData.ch06   = 42;
-    rxData.ch07   = 42;
-    rxData.ch08   = 42;
+    rxData.sw_3   = 42;
+    rxData.btn_A   = 42;
+    rxData.btn_B   = 42;
     rxData.ch09   = 42;
     rxData.ch10   = 42;
     rxData.ch11   = 42;
@@ -200,37 +200,37 @@ void init_esp_now(){
       return;
     }
     change_channel(sending_ch);
-  }  
+  }
   esp_now_register_recv_cb(OnDataRecv);
 }
 
 void switch_wireles_mode(){
   
   // Serial.print("motor status: ");
-  read_drv8908_status();
+  // read_drv8908_status();
   
   // init_drv8908(MOTOR_LAYOUT);
   write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
 
-  // if(wireles_mode == 0){
-  //   wireles_mode = 1;
-  //   esp_now_deinit();
-  //   init_WifiWebServer();
-  //   led_color(10,0,10);
-    
-  //   drive_motor_A(COAST, 0);
-  //   drive_motor_B(COAST, 0);
-  // }else{
-  //   wireles_mode = 0;
-  //   server.end();
-  //   init_esp_now();
-  //   myPID.SetTunings(Kp,Ki,Kd);
+  if(wireles_mode == 0){
+    wireles_mode = 1;
+    esp_now_deinit();
+    init_WifiWebServer();
+    led_state = WIFI_MODE;    
+    drive_motor_A(COAST, 0);
+    drive_motor_B(COAST, 0);
+  }else{
+    wireles_mode = 0;
+    server.end();
+    init_esp_now();
+    myPID.SetTunings(Kp,Ki,Kd);
 
-  //   EEPROM_DATA.PID_P = Kp;
-  //   EEPROM_DATA.PID_I = Ki;
-  //   EEPROM_DATA.PID_D = Kd;
-  //   EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
-  //   EEPROM.commit();
-  //   led_color(0,10,0);
-  // }
+    led_state = RX_LOST;
+    EEPROM_DATA.PID_P = Kp;
+    EEPROM_DATA.PID_I = Ki;
+    EEPROM_DATA.PID_D = Kd;
+    EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+    EEPROM.commit();
+  }
+  delay(500);
 }

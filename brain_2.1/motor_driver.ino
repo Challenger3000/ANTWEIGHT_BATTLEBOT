@@ -73,7 +73,7 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
       // Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
 
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_1, PWM);
+        write_register_drv8908(PWM_DUTY_1, constrain(PWM,0,max_throttle));
       }else{
         write_register_drv8908(PWM_DUTY_1, 0);
       }
@@ -110,7 +110,7 @@ void drive_motor_A(uint8_t new_state, uint8_t PWM){
       // Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
 
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_1, PWM);
+        write_register_drv8908(PWM_DUTY_1, constrain(PWM,0,max_throttle));
       }else{
         write_register_drv8908(PWM_DUTY_1, 0);
       }
@@ -153,7 +153,7 @@ void drive_motor_B(uint8_t new_state, uint8_t PWM){
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_2, PWM);  // sets motor duty cycle
+        write_register_drv8908(PWM_DUTY_2, constrain(PWM,0,max_throttle));  // sets motor duty cycle
       }else{
         write_register_drv8908(PWM_DUTY_2, 0);
       }
@@ -189,7 +189,7 @@ void drive_motor_B(uint8_t new_state, uint8_t PWM){
       // Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
 
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_2, PWM);
+        write_register_drv8908(PWM_DUTY_2, constrain(PWM,0,max_throttle));
       }else{
         write_register_drv8908(PWM_DUTY_2, 0);
       }
@@ -241,7 +241,7 @@ void drive_motor_C(uint8_t new_state, uint8_t PWM){
       // Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
 
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_1, PWM);
+        write_register_drv8908(PWM_DUTY_1, constrain(PWM,0,max_throttle));
       }else{
         write_register_drv8908(PWM_DUTY_1, 0);
       }
@@ -277,7 +277,7 @@ void drive_motor_C(uint8_t new_state, uint8_t PWM){
       // Serial.println(read_register_drv8908(OCP_STAT_2), BIN);
 
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_3, PWM);
+        write_register_drv8908(PWM_DUTY_3, constrain(PWM,0,max_throttle));
       }else{
         write_register_drv8908(PWM_DUTY_3, 0);
       }
@@ -320,7 +320,7 @@ void drive_motor_D(uint8_t new_state, uint8_t PWM){
       write_register_drv8908(OP_CTRL_1, MOTOR_A1_STATE | MOTOR_B1_STATE | MOTOR_C1_STATE | MOTOR_D1_STATE);
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_2, PWM);  // sets motor duty cycle
+        write_register_drv8908(PWM_DUTY_2, constrain(PWM,0,max_throttle));  // sets motor duty cycle
       }else{
         write_register_drv8908(PWM_DUTY_2, 0);
       }
@@ -351,7 +351,7 @@ void drive_motor_D(uint8_t new_state, uint8_t PWM){
       write_register_drv8908(OP_CTRL_2, MOTOR_A2_STATE | MOTOR_B2_STATE | MOTOR_C2_STATE | MOTOR_D2_STATE);
 
       if(motors_on){
-        write_register_drv8908(PWM_DUTY_4, PWM);
+        write_register_drv8908(PWM_DUTY_4, constrain(PWM,0,max_throttle));
       }else{
         write_register_drv8908(PWM_DUTY_4, 0);
       }
@@ -387,6 +387,9 @@ void init_drv8908(uint8_t config){
   switch (config) {
   case PARALEL_AC_BD:
     // general settings for all motors
+    
+    write_register_drv8908(SR_CTRL_1, 0xFF);              // Enabling slow slew rate to hopefully prevent overcurrent
+    
     write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
     write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
     write_register_drv8908(OLD_CTRL_3, 0b10000000);       // keep driving motors if open load is detected
@@ -406,7 +409,9 @@ void init_drv8908(uint8_t config){
 
     write_register_drv8908(PWM_CTRL_2, 0x00);             // enable pwm generation
     break;
-  case INDIVIDUAL_A_B_C_D:
+  case INDIVIDUAL_A_B_C_D:  
+    write_register_drv8908(SR_CTRL_1, 0xFF);              // Enabling slow slew rate to hopefully prevent overcurrent
+
     write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
     write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
     write_register_drv8908(OLD_CTRL_3, 0b10000000);       // over current protection deglitch time
@@ -462,7 +467,7 @@ void driving_logic(){
   }
 
 
-  if(rxData.sw_1 == 1 && millis() - last_drive_command >= 10){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power
+  if(rxData.sw_2 == 0 && millis() - last_drive_command >= 10){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power
     last_drive_command = millis();
     new_rx_data = false;
 
@@ -477,48 +482,68 @@ void driving_logic(){
     
     if(rxData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
       motorA_output += (rxData.x_axis-2048)/2;
-      motorB_output -= (rxData.x_axis-2048)/2;      
+      motorB_output -= (rxData.x_axis-2048)/2;
     }
-
+    
     if(use_imu_for_yaw_rate){
-      motorA_output -= round(Output);
-      motorB_output += round(Output);
+      if(accelData.accelZ > -0.5){
+        motorA_output -= round(Output);
+        motorB_output += round(Output);
+      }else{
+        // motorA_output += round(Output);
+        // motorB_output -= round(Output);
+      }
     }
     drive_motors_forward_backward();
   }
 
-  if(rxData.sw_1 == 2 && millis() - last_drive_command >= 10){
+  if(rxData.sw_2 == 1 && millis() - last_drive_command >= 10){
     last_drive_command = millis();
     new_rx_data = false;
     
-    drive_motor_A(FORWARD, -1*constrain(map( rxData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
-    drive_motor_B(FORWARD, constrain(map( rxData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
-    drive_motor_C(FORWARD, constrain(map( rxData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
-    drive_motor_D(FORWARD, -1*constrain(map( rxData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    // mixing
+    if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+      motorA_output = rxData.y_axis-2048;
+      motorB_output = motorA_output;
+    }else{
+      motorA_output = 0;
+      motorB_output = 0;
+    }
+    
+    if(rxData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+      motorA_output += (rxData.x_axis-2048)/2;
+      motorB_output -= (rxData.x_axis-2048)/2;
+    }
 
-    // drive_motor_A(FORWARD, map( rxData.x_axis,2050 ,4096 ,0 ,255 ));
-    // drive_motor_B(FORWARD, map( rxData.y_axis,0 ,2000 ,0 ,255 ));
-    
-    // drive_motor_A(FORWARD, map( rxData.x_axis,0 ,4096 ,0 ,255 ));
-    // drive_motor_B(FORWARD, map( rxData.y_axis,0 ,4096 ,0 ,255 ));
+    drive_motors_forward_backward();
+    // drive_motor_A(FORWARD, -1*constrain(map( rxData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    // drive_motor_B(FORWARD, constrain(map( rxData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
+    // drive_motor_C(FORWARD, constrain(map( rxData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
+    // drive_motor_D(FORWARD, -1*constrain(map( rxData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
 
-    Serial.print("RIGHT: ");
-    Serial.print(constrain(map( rxData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
-    Serial.print(" , LEFT: ");
-    Serial.print(-1*constrain(map( rxData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    // // drive_motor_A(FORWARD, map( rxData.x_axis,2050 ,4096 ,0 ,255 ));
+    // // drive_motor_B(FORWARD, map( rxData.y_axis,0 ,2000 ,0 ,255 ));
     
-    Serial.print(" ,UP: ");
-    Serial.print(constrain(map( rxData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
-    Serial.print(" , DOWN: ");
-    Serial.print(-1*constrain(map( rxData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    // // drive_motor_A(FORWARD, map( rxData.x_axis,0 ,4096 ,0 ,255 ));
+    // // drive_motor_B(FORWARD, map( rxData.y_axis,0 ,4096 ,0 ,255 ));
+
+    // Serial.print("RIGHT: ");
+    // Serial.print(constrain(map( rxData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
+    // Serial.print(" , LEFT: ");
+    // Serial.print(-1*constrain(map( rxData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
     
-    Serial.print(" , X: ");
-    Serial.print(rxData.x_axis);
-    Serial.print(" , Y: ");
-    Serial.println(rxData.y_axis);
+    // Serial.print(" ,UP: ");
+    // Serial.print(constrain(map( rxData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
+    // Serial.print(" , DOWN: ");
+    // Serial.print(-1*constrain(map( rxData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    
+    // Serial.print(" , X: ");
+    // Serial.print(rxData.x_axis);
+    // Serial.print(" , Y: ");
+    // Serial.println(rxData.y_axis);
   }
 
-  if(rxData.sw_1 == 3){
+  if(rxData.sw_2 == 2){
     drive_motor_A(COAST,0);
     drive_motor_B(COAST,0);
   }

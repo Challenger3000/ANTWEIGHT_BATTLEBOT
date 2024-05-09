@@ -2,7 +2,7 @@
 void init_eeprom(){  
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(EEPROM_ADDRES, EEPROM_DATA);
-
+	sending_ch = EEPROM_DATA.bound_ch;
 	// Serial.println();
 	// Serial.println();
 	// Serial.print("EEPROM PID PARAMS P: ");

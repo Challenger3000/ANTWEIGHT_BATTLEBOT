@@ -18,7 +18,12 @@ void update_pid(){
   // IMU.update();
   // IMU.getGyro(&gyroData);
   
-  Input = (double)filtered_signal;
+  // if(accelData.accelZ > -0.5){
+    Input = (double) filtered_signal;
+  // }
+  // else{
+  //   Input = (double) - filtered_signal;
+  // }
   myPID.Compute();
 
   // if(rxData.sw_1 == 3){

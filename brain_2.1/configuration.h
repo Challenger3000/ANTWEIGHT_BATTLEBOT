@@ -2,6 +2,8 @@
 // Drive motor related settings
 bool motors_on = true;                  // turns on and off all motors in one boolean. 
 
+#define max_throttle 255
+
 // INDIVIDUAL_A_B_C_D - for 1x4 individual motors.
 // PARALEL_AC_BD      - for 2x2 motors with A C outputs and B D outputs being paralel.
 

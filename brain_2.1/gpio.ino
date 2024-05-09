@@ -11,6 +11,7 @@ void update_gpio(){
     if(!digitalRead(BUTTON)){
       switch_wireles_mode();
     }
+    // imu_print();
     // float v_bat = 0.0067441860 * (float)analogRead(VSENSE);
     // Serial.print("V_bat: ");
     // Serial.print(v_bat);
@@ -18,5 +19,3 @@ void update_gpio(){
     // Serial.println(v_bat/3.0);
   }
 }
-
-  // imu_print();

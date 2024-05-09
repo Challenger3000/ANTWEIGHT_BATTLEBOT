@@ -42,11 +42,11 @@ void init_imu(){
 void imu_print(){
   IMU.update();
   IMU.getAccel(&accelData);
-  // Serial.print(accelData.accelX);
-  // Serial.print("\t");
-  // Serial.print(accelData.accelY);
-  // Serial.print("\t");
-  // Serial.print(accelData.accelZ);
+  Serial.print(accelData.accelX);
+  Serial.print("\t");
+  Serial.print(accelData.accelY);
+  Serial.print("\t");
+  Serial.println(accelData.accelZ);
   // Serial.print("\t");
   IMU.getGyro(&gyroData);
   // Serial.print(gyroData.gyroX);

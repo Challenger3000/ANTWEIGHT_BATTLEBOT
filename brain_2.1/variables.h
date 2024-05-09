@@ -152,6 +152,7 @@ bool led_warning_phase = false;
 enum LED_STATUS_STATES {
   RX_RECEIVING = 0,
   RX_LOST = 1,
+  WIFI_MODE,
 };
 
 int led_state = RX_LOST;
@@ -168,6 +169,7 @@ calData calib = { 0 };  //Calibration data
 AccelData accelData;    //Sensor data
 GyroData gyroData;
 MagData magData;
+bool up_side_down = false;
 // imu variables end
 
 
@@ -286,9 +288,9 @@ typedef struct struct_message {
   uint32_t  pot_1;
   uint8_t   sw_1;
   uint8_t   sw_2;
-  uint8_t   ch06;
-  uint8_t   ch07;
-  uint8_t   ch08;
+  uint8_t   sw_3;
+  uint8_t   btn_A;
+  uint8_t   btn_B;
   uint8_t   ch09;
   uint8_t   ch10;
   uint8_t   ch11;

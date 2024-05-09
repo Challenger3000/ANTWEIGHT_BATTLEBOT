@@ -15,19 +15,22 @@ void led_color(uint8_t red, uint8_t green, uint8_t blue){
 void led_update(){
   if(millis() - last_led_update < 100){
     return;
-  }else{
-    last_led_update = millis();
-    if(drv8908_overcurrent && millis() % 500 < 250){
+  }
+
+  last_led_update = millis();
+  if(drv8908_overcurrent && millis() % 500 < 250){
+    led_color(10, 0, 0);
+    return;
+  }
+  switch (led_state){
+    case RX_RECEIVING:
+      led_color(0, 10, 0);
+      break;
+    case RX_LOST:
       led_color(10, 0, 0);
-      return;
-    }
-    switch (led_state){
-      case RX_RECEIVING:
-        led_color(0, 10, 0);
-        break;
-      case RX_LOST:
-        led_color(10, 0, 0);
-        break;
-    }
+      break;
+    case WIFI_MODE:      
+      led_color(10,0,10);
+      break;
   }
 }
