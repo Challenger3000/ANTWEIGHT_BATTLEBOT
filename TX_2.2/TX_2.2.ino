@@ -719,6 +719,7 @@ void send_joysitck(){
   txData.ch16   = 130;
   memcpy(txData.mac, peerInfo.peer_addr, 6);
 
+
   Serial.print("X: ");
   Serial.print(txData.x_axis);
   Serial.print("\tY: ");
