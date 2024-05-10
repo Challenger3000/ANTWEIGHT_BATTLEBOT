@@ -26,6 +26,7 @@ https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-window
 5. Set these parameters in arduino ide:
 
 ![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/3b4f20c7-2340-4be0-b26f-d579e45eb88b)
+
 7. Upload code, if exit status 1 or status 2, then hold the programming button while adding power to robot controller, and retry upload.  
 
 Binding process...
