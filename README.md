@@ -77,9 +77,8 @@ Charger board has solder jumpers to sellect battery cell count.
 
 Transmitter has 4 adressable leds
 
-![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/c964265b-a961-4c52-9257-dbc815d25be4){
-    width:30%;
-}
+![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/c964265b-a961-4c52-9257-dbc815d25be4)
+
 
 By default 1st one from the left is the transmitter battery status with the following colors
 green - yellow - red - red blinking.... all of them represent the charge state of the remote.
