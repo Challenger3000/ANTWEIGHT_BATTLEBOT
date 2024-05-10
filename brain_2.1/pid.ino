@@ -14,27 +14,6 @@ void init_pid(){
 }
 
 void update_pid(){
-
-  // IMU.update();
-  // IMU.getGyro(&gyroData);
-  
-  // if(accelData.accelZ > -0.5){
-    Input = (double) filtered_signal;
-  // }
-  // else{
-  //   Input = (double) - filtered_signal;
-  // }
+  Input = (double) filtered_signal;
   myPID.Compute();
-
-  // if(rxData.sw_1 == 3){
-  //   Serial.print("set:");
-  //   Serial.print(Setpoint,3);
-  //   Serial.print(",filt:");
-  //   Serial.print(filtered_signal,3);
-  //   Serial.print(",raw_out:");
-  //   Serial.print(Output);
-  //   Serial.print(",core:");
-  //   Serial.println(xPortGetCoreID());
-  // }
-
 }

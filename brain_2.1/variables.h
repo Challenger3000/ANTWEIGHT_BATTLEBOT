@@ -18,6 +18,7 @@ int motorD_output = 0;
 #include <ESPAsyncWebServer.h>
 
 double num1, num2, num3;
+bool new_pid_values = false;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 const char index_html[] PROGMEM = R"rawliteral(
@@ -175,9 +176,7 @@ bool up_side_down = false;
 
 // filter variables start
 #include "1euroFilter.h"
-static OneEuroFilter f; // not enabled yet, setup has to be called later
-// Frequency of your incoming noisy data
-// If you are able to provide timestamps, the frequency is automatically determined
+static OneEuroFilter f; 
 #define FREQUENCY   120   // [Hz] 
 #define MINCUTOFF   50.0   // [Hz] needs to be tuned according to your application
 #define BETA        10.0   // needs to be tuned according to your application
@@ -240,7 +239,6 @@ enum DRV8908_MOTOR_REGISTER_STATES {
 uint8_t drv8908_status = 0;
 bool drv8908_overcurrent = false;
 unsigned long last_drive_command = 0;
-
 
 uint8_t MOTOR_A1_STATE = A1_COAST;
 uint8_t MOTOR_B1_STATE = B1_COAST;
@@ -322,8 +320,6 @@ unsigned long last_voltage_send = 0;
 
 
 // gpio variables start
-#define BUTTON 4
-#define VSENSE 10
 unsigned long last_gpio_update = 0;
 // gpio variables end
 

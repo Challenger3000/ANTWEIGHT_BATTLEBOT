@@ -387,8 +387,6 @@ void init_drv8908(uint8_t config){
 
   switch (config) {
   case PARALEL_AC_BD:
-    // general settings for all motors
-    
     write_register_drv8908(SR_CTRL_1, 0xFF);              // Enabling slow slew rate to hopefully prevent overcurrent
     
     write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control

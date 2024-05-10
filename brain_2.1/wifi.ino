@@ -37,6 +37,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     led_color(255,255,255);
     delay(200);
     led_color(10,0,10);
+    new_pid_values = true;
   }
 }
 

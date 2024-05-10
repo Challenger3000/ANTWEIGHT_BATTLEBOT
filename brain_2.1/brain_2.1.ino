@@ -1,14 +1,8 @@
 #include "variables.h"
 #include "configuration.h"
 
-
 void setup() {  
   Serial.begin(115200);
-  
-  // while(!Serial){
-  //   ;
-  // }
-  
   init_gpio();
   init_eeprom();
   init_led();
@@ -21,9 +15,9 @@ void setup() {
 }
 
 void loop() {
-  led_update();
-  update_gpio();
-  update_filter();
-  update_pid();
-  driving_logic();
+  led_update();                   // updates the led color based current status
+  update_gpio();                  // reads the button and sends the voltage telemetry
+  update_filter();                // filters imu data
+  update_pid();                   // calculates the PID output
+  driving_logic();                // mixes received data and sends it to the motor driver
 }

@@ -56,8 +56,8 @@ bool binding(){
     rxData.sw_1   = 42;
     rxData.sw_2   = 42;
     rxData.sw_3   = 42;
-    rxData.btn_A   = 42;
-    rxData.btn_B   = 42;
+    rxData.btn_A  = 42;
+    rxData.btn_B  = 42;
     rxData.ch09   = 42;
     rxData.ch10   = 42;
     rxData.ch11   = 42;
@@ -82,7 +82,6 @@ bool isMacAddressEqual(const uint8_t* receivedMac, const uint8_t* currentMac) {
 }
 
 bool received_binding_confirmed_packet(){
-	
 	uint8_t mymac[6];
 	WiFi.macAddress(mymac);
 
@@ -104,7 +103,7 @@ bool received_binding_confirmed_packet(){
 void print_MAC(const uint8_t * mac_addr){
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   Serial.println(macStr);
 }
 
@@ -139,26 +138,16 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // add pear to list
     return;
   }else{
-  memcpy(&rxData, incomingData, sizeof(rxData));
-  last_receive = millis();
-  new_rx_data = true;
-  led_state = RX_RECEIVING;
-  int temp_setpoint = map(rxData.x_axis,0,4095,600,-600);
-  if(temp_setpoint > 6 || temp_setpoint < -6){
-    Setpoint = temp_setpoint;
-  }else{
-    Setpoint = 0;
-  }
-
-  // Serial.print(rxData.x_axis);
-  // Serial.print("\t");
-  // Serial.print(rxData.y_axis);
-  // Serial.print("\t");
-  // Serial.print(rxData.pot_1);
-  // Serial.print("\t");
-  // Serial.print(rxData.sw_1);
-  // Serial.print("\t");
-  // Serial.println(rxData.sw_2);
+    memcpy(&rxData, incomingData, sizeof(rxData));
+    last_receive = millis();
+    new_rx_data = true;
+    led_state = RX_RECEIVING;
+    int temp_setpoint = map(rxData.x_axis,0,4095,max_yaw_rate,-max_yaw_rate);
+    if(temp_setpoint > 6 || temp_setpoint < -6){
+      Setpoint = temp_setpoint;
+    }else{
+      Setpoint = 0;
+    }
   }
 }
 
@@ -179,22 +168,7 @@ void init_esp_now(){
       return;
     }
     change_channel(binding_ch);
-    // Serial.println("setting binding channel");
   }else{
-		
-		// Serial.print("\n\n\nPEER INFO FROM EEPROM:");
-		// Serial.print("Peer MAC Address: ");
-		// print_MAC(peerInfo.peer_addr);
-		// Serial.print("Channel: ");
-		// Serial.println(peerInfo.channel);
-		// Serial.print("Encryption: ");
-		// Serial.println(peerInfo.encrypt ? "Enabled" : "Disabled");
-		// Serial.print("Password as hex: ");
-		// for (int i = 0; i < 16; i++) {
-		// 	Serial.print(peerInfo.lmk[i], HEX);
-		// 	Serial.print(" ");
-		// }
-		// Serial.println();
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
       Serial.println("Failed to add peer");
       return;
@@ -205,13 +179,6 @@ void init_esp_now(){
 }
 
 void switch_wireles_mode(){
-  
-  // Serial.print("motor status: ");
-  // read_drv8908_status();
-  
-  // init_drv8908(MOTOR_LAYOUT);
-  write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
-
   if(wireles_mode == 0){
     led_state = WIFI_MODE;
     led_update();
@@ -226,12 +193,15 @@ void switch_wireles_mode(){
     wireles_mode = 0;
     server.end();
     init_esp_now();
-    myPID.SetTunings(Kp,Ki,Kd);
-    EEPROM_DATA.PID_P = Kp;
-    EEPROM_DATA.PID_I = Ki;
-    EEPROM_DATA.PID_D = Kd;
-    EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
-    EEPROM.commit();
+    if(new_pid_values){
+      myPID.SetTunings(Kp,Ki,Kd);
+      EEPROM_DATA.PID_P = Kp;
+      EEPROM_DATA.PID_I = Ki;
+      EEPROM_DATA.PID_D = Kd;
+      EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
+      EEPROM.commit();
+      new_pid_values = false;
+    }
   }
   delay(500);
 }
