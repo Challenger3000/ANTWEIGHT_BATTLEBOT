@@ -82,6 +82,7 @@ green - yellow - red - red blinking.... all of them represent the charge state o
 green - yellow - red - red blinking.... all of them represent the charge state of the robot.
 Blue/cyan blinking - binding mode
 
+The 2 right leds on the remote are RGB controllable, and are not currently used,
 
 Keep in mind!
 Esp32 s3 doesn't like Printing in serial while no serial connection is present, so comment out all serial print or use switches on the transmitter to enable/disable serial prints on the robot/transmitter.
