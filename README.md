@@ -8,17 +8,23 @@ The main brain of the robot has the following hardware
 3. 3.3v regulator
 4. 5.0v regulator
 5. LSM6DSLTR Gyro/accelerometer
-6. individually addressable rbg leds
+6. individually addressable RGB LEDs
 7. 1-4s battery charger
 
 Transmitter hardware consists of 
+1. ESP32S3
+3. 3.3v regulator
+5. LSM6DSLTR Gyro/accelerometer
+6. 4x individually addressable RGB LEDs
+7. 1-4s battery charger
 
 
-The main code example includes features like...
-1. Binding between robot ant transmitter, with encryption and variable frequency
-2. Abstracted interface with motor driver
+
+The main features of this code are...
+1. Conveneinent binding between robot ant transmitter
+2. Simple interface with the motor driver
 3. 2x servo outputs on pins IO37 and IO38
-4. PID control loop to aid in driving
+4. PID control loop for yaw rate control
 5. Website hosting over wifi for PID/Configuration setting changes.
 
 **Code uploading...**
@@ -35,7 +41,7 @@ https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-window
 
 **Binding process...**
 
-1. Hold down "B" button on transmitter and turn it ononce you see the second rgb led from the left side blinking blue and cyan.
+1. Hold down "B" button on transmitter and turn it on, once you see the second rgb led from the left side blinking blue and cyan.
 2. Hold top side button on the robot while turning the robot on until you see rgb led blinking blue and cyan.
 3. Keep the robots withing 2m or so, it should take around 5 seconds to bind.
    
@@ -61,8 +67,9 @@ If you rotate your stick as far to the left as you can, it will by default try t
 **Website hosting over wifi...**
 
 For imu PIDs to work you need to tune them. the easiest way to do that is by using wifi website mode. 
-To aces this website press the general purpose button while the robot is on, led will change to purple and controll will be lost.
+To aces this website press the general purpose button while the robot is on, led will change to purple and control will be lost.
 Then you can connect to wifi, by default its called PID_SETUP_WIFI with pasword 12345678 . PLEASE CHANGE THIS TO YOUR OWN WIFI NAME AND PASS.
+Then connect to wifi and open this: 192.168.4.1 IP address in a browser. You will be greated with a website asking for P I and D parameters
 After your done changing pids, you click send, if the robot receives the changes, it will flash white once. then you can click the button again to go back to driving mode.
 The website being hosted can be changed, in wifi.ino file.
 
@@ -82,16 +89,14 @@ Robot board consists of main brain with the driver, and imu. and an addon charge
 ![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/c964265b-a961-4c52-9257-dbc815d25be4)
 
 
-**Transmitter has 4 adressable leds...**
+**Transmitter has 4 addressable LEDs...**
 
 By default 1st one from the left is the transmitter battery status with the following colors
 green - yellow - red - red blinking.... all of them represent the charge state of the remote.
-
 2nd one is robot status:
 green - yellow - red - red blinking.... all of them represent the charge state of the robot.
 Blue/cyan blinking - binding mode
-
-The 2 right leds on the remote are RGB controllable, and are not currently used,
+The 2 right LEDs on the remote are RGB controllable, and are not currently used,
 
 
 **Keep in mind!**
