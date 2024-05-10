@@ -31,7 +31,14 @@ The main features of this code are...
 1. install Arduino IDE 2.3.2 from https://www.arduino.cc/en/software
 2. add "Arduino ESP32 Boards By Arduino" and "esp32 by Espressif" following this tutorial:
 https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
-3. Try to compile, flash/verify, and install all missing libraries.
+3. Try to compile, flash/verify, and install all libraries.
+   * AsyncTCP
+   * ESPAsyncWebServer
+   * FastLED
+   * FastIMU
+   * 1euroFilter
+   * PID
+   * ESP32Servo   
 4. Connect robot, select com port and chose ESP32S3 Dev
 5. Set these parameters in arduino ide:
 
