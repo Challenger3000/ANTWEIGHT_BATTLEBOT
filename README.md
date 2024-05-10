@@ -24,8 +24,9 @@ https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-window
 3. Try to compile, flash/verify, and install all missing libraries.
 4. Connect robot, select com port and chose ESP32S3 Dev
 5. Set these parameters in arduino ide:
-   ![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/3b4f20c7-2340-4be0-b26f-d579e45eb88b)
-6. Upload code, if exit status 1 or status 2, then hold the programming button while adding power to robot controller, and retry upload.  
+
+![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/3b4f20c7-2340-4be0-b26f-d579e45eb88b)
+7. Upload code, if exit status 1 or status 2, then hold the programming button while adding power to robot controller, and retry upload.  
 
 Binding process...
 1. Hold down "B" button on transmitter and turn it ononce you see the second rgb led from the left side blinking blue and cyan.
@@ -65,3 +66,23 @@ Yellow - motor driver over current
 Robot board consists of main brain with the driver, and imu. and an addon charger board. 
 
 
+![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/5f309d43-2840-40ca-801e-7a01e9710031)
+![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/db7778c4-27f8-436b-be8a-a035e42542d5)
+![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/d8dc95cc-22ef-4ea0-a8a9-47e5171e8d5c)
+Charger board has solder jumpers to sellect battery cell count.
+
+Transmitter has 4 adressable leds
+
+![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/c964265b-a961-4c52-9257-dbc815d25be4)
+
+By default 1st one from the left is the transmitter battery status with the following colors
+green - yellow - red - red blinking.... all of them represent the charge state of the remote.
+
+2nd one is robot status:
+green - yellow - red - red blinking.... all of them represent the charge state of the robot.
+Blue/cyan blinking - binding mode
+
+
+Keep in mind!
+Esp32 s3 doesn't like Printing in serial while no serial connection is present, so comment out all serial print or use switches on the transmitter to enable/disable serial prints on the robot/transmitter.
+If you do a lot of printing, with no serial cable attached, ESP will start to lag
