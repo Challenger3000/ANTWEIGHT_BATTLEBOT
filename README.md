@@ -34,6 +34,7 @@ Binding process...
 3. Keep the robots withing 2m or so, it should take around 5 seconds to bind.
    
 Motor driver abstraction...
+
 The motor driver onboard has 4 full bridges. So its capable of driving 4 1.0 - 1.5 A motors, or 2 2.0 - 3.0 A motors
 You have to chose the descired configuration in configuration.h by setting 
 MOTOR_LAYOUT = PARALEL_AC_BD or INDIVIDUAL_A_B_C_D
@@ -44,6 +45,7 @@ https://www.ti.com/lit/ds/symlink/drv8912-q1.pdf?ts=1715276670041&ref_url=https%
 The motor driver has OVER CURRENT PROTECTION, if robot detects the over current protection it will flash onboard status led YELOW.
 
 PID control...
+
 The robot and remote has a built-in imu in both robot and transmitter. Currently not supported on transmitters side. IMU used is LSM6DSLTR, SDA is connected to io48 and SCL to io47, in case you want to add support.
 By default, robot comes with, 3 modes on 2nd switch. Off on the bottom, On no IMU in the middle, On with imu stabilisation pointing forwards.
 When in imu stabilisation mode, robot will track rotational speed.
@@ -51,6 +53,7 @@ For example if the sitck is in the middle, the robot will try to stay motionless
 If you rotate your stick as far to the left as you can, it will by default try to maintain 600 deg/s. This can be changed in configuration.h.
 
 Website hosting over wifi...
+
 For imu PIDs to work you need to tune them. the easiest way to do that is by using wifi website mode. 
 To aces this website press the general purpose button while the robot is on, led will change to purple and controll will be lost.
 Then you can connect to wifi, by default its called PID_SETUP_WIFI with pasword 12345678 . PLEASE CHANGE THIS TO YOUR OWN WIFI NAME AND PASS.
@@ -58,6 +61,7 @@ After your done changing pids, you click send, if the robot receives the changes
 The website being hosted can be changed, in wifi.ino file.
 
 Robot led status explanations...
+
 Red - not connected,
 Red blinking - Calibrating IMU
 Green - connected, 
@@ -84,6 +88,8 @@ Blue/cyan blinking - binding mode
 
 The 2 right leds on the remote are RGB controllable, and are not currently used,
 
+
 Keep in mind!
+
 Esp32 s3 doesn't like Printing in serial while no serial connection is present, so comment out all serial print or use switches on the transmitter to enable/disable serial prints on the robot/transmitter.
 If you do a lot of printing, with no serial cable attached, ESP will start to lag
