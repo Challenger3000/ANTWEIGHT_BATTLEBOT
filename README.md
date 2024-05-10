@@ -16,7 +16,7 @@ The main code example includes features like...
 3. Simple input mixing for driving,
 4. 2x servo outputs on pins IO37 and IO38
 5. PID control loop to aid in driving
-6. 
+6. Website 
 
 To compile this example...
 1. install Arduino IDE 2.3.2 from https://www.arduino.cc/en/software
@@ -29,3 +29,9 @@ Binding proces...
 2. Hold top side button on the robot while turning the robot on until you see rgb led blinking blue and cyan.
 3. Keep the robots withing 2m or so, it should take around 5 seconds to bind.
    
+Motor driver abstraction...
+The motor driver onboard has 4 full bridges. So its capable of driving 4 1.0 - 1.5 A motors, or 2 2.0 - 3.0 A motors
+You have to chose the descired configuration in configuration.h by setting 
+MOTOR_LAYOUT = PARALEL_AC_BD or INDIVIDUAL_A_B_C_D
+After initialising the motor driver, you can simply use drive_motor_A() and motor A will drive.
+If your using 2 paralel motors and not 4 individual motors, motor A C, and B D, will work together to acheave more current.
