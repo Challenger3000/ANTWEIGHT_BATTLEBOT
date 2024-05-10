@@ -298,19 +298,19 @@ void binding(){
   }
 
   if(millis()-last_strongest_receive > 1000 && rssi_list[strongest_rssi_index].received_packets > 10 && rssi_list[strongest_rssi_index].rssi > -50 ){
-    Serial.println("BINDING DONE");
-    Serial.print("STRONGEST RSSI INDEX: ");
-    Serial.println(strongest_rssi_index);
-    Serial.print("STRONGEST RSSI VALUE: ");
-    Serial.println(rssi_list[strongest_rssi_index].rssi);
-    Serial.print("MAC: ");
-    print_MAC(rssi_list[strongest_rssi_index].mac_address);    
-    Serial.print("  ");    
-    print_rssi_list();
+    // Serial.println("BINDING DONE");
+    // Serial.print("STRONGEST RSSI INDEX: ");
+    // Serial.println(strongest_rssi_index);
+    // Serial.print("STRONGEST RSSI VALUE: ");
+    // Serial.println(rssi_list[strongest_rssi_index].rssi);
+    // Serial.print("MAC: ");
+    // print_MAC(rssi_list[strongest_rssi_index].mac_address);    
+    // Serial.print("  ");    
+    // print_rssi_list();
 
     randomSeed((unsigned long)esp_random());
     pmk_key_str[0] = '\0';  
-    Serial.println("Generating a random 16-byte PMK:");
+    // Serial.println("Generating a random 16-byte PMK:");
 
     // Append each random byte as a two-character hex value to the string
     for (int i = 0; i < 16; i++) {
@@ -331,13 +331,13 @@ void binding(){
     memcpy(txData.mac, rssi_list[strongest_rssi_index].mac_address, 6);
 
 
-    Serial.print("Password: ");
-    for (int i = 0; i < 16; i++) {
-      Serial.print("0x");
-      Serial.print((byte)txData.string[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
+    // Serial.print("Password: ");
+    // for (int i = 0; i < 16; i++) {
+    //   Serial.print("0x");
+    //   Serial.print((byte)txData.string[i], HEX);
+    //   Serial.print(" ");
+    // }
+    // Serial.println();
     
     EEPROM_DATA.binding_status = 1;
     EEPROM_DATA.bound_ch = sending_ch;
@@ -356,7 +356,7 @@ void binding(){
     esp_wifi_set_promiscuous(false);
 
     change_channel(sending_ch);
-    Serial.println("binding confirmed");
+    // Serial.println("binding confirmed");
     memcpy(peerInfo.peer_addr, rssi_list[strongest_rssi_index].mac_address, 6);
     peerInfo.channel = sending_ch;
     peerInfo.encrypt = true;
@@ -365,20 +365,15 @@ void binding(){
       Serial.println("Failed to add peer");
       return;
     }
-    Serial.print("Added: ");
-    print_MAC(peerInfo.peer_addr);
-    Serial.print("Channel: ");
-    Serial.println(peerInfo.channel);    
+    // Serial.print("Added: ");
+    // print_MAC(peerInfo.peer_addr);
+    // Serial.print("Channel: ");
+    // Serial.println(peerInfo.channel);    
     esp_now_register_send_cb(OnDataSent);
   
     state = SENDING;
     return;
 
-  }else if(millis()-last_list_print > 1000){
-    last_list_print = millis();
-    Serial.print("Time since last strongest receive: ");
-    Serial.println(millis() - last_strongest_receive);
-    print_rssi_list();
   }
 
   if(millis()-last_sendtime > 200){
@@ -391,8 +386,8 @@ void binding(){
     txData.sw_1   = 42;
     txData.sw_2   = 42;
     txData.sw_3   = 42;
-    txData.btn_A   = 42;
-    txData.btn_B   = 42;
+    txData.btn_A  = 42;
+    txData.btn_B  = 42;
     txData.ch09   = 42;
     txData.ch10   = 42;
     txData.ch11   = 42;
@@ -451,8 +446,6 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
       rx_lost = true;
     }
   }
-
-  // Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -615,19 +608,19 @@ void calibrate_joystick(){
   }
   
   Serial.println("joystick limits calibration done");
-  Serial.print("calib_x_low = ");
-  Serial.println(x_low);
-  Serial.print("calib_x_high = ");
-  Serial.println(x_high);
-  Serial.print("calib_y_low = ");
-  Serial.println(y_low);
-  Serial.print("calib_y_high = ");
-  Serial.println(y_high);
+  // Serial.print("calib_x_low = ");
+  // Serial.println(x_low);
+  // Serial.print("calib_x_high = ");
+  // Serial.println(x_high);
+  // Serial.print("calib_y_low = ");
+  // Serial.println(y_low);
+  // Serial.print("calib_y_high = ");
+  // Serial.println(y_high);
 
-  EEPROM_DATA.calib_x_low  = x_low;
-  EEPROM_DATA.calib_x_high = x_high;
-  EEPROM_DATA.calib_y_low  = y_low;
-  EEPROM_DATA.calib_y_high = y_high;
+  EEPROM_DATA.calib_x_low  = x_low + 100;
+  EEPROM_DATA.calib_x_high = x_high - 100;
+  EEPROM_DATA.calib_y_low  = y_low + 100;
+  EEPROM_DATA.calib_y_high = y_high - 100;
 
   EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
   EEPROM.commit();
