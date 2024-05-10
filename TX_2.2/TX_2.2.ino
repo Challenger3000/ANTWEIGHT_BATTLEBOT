@@ -142,19 +142,11 @@ typedef struct {
 int rssi_last;
 unsigned long last_list_print = 0;
 
-void setup() {  
-
+void setup() {
   Serial.begin(115200);
-  // while(!Serial){
-  //   ;
-  // }
   init_led();
-
-
   init_eeprom();
   init_gpio();
-
-
 
   if (get_button_B()) {
     state = BINDING;
@@ -168,12 +160,7 @@ void setup() {
 
   init_data_structures();
   init_esp_now();
-  if(EEPROM_DATA.need_to_calibrate){
-    calibrate_joystick();
-  }else{
-    ch1_offset = EEPROM_DATA.offset_x;
-    ch2_offset = EEPROM_DATA.offset_y;
-  }
+  init_joystick();
 }
 
 void loop() {

@@ -75,3 +75,12 @@ uint32_t calculate_expo_12_Bit(int rc_in, float expo){
   return expo_val;
 
 }
+
+void init_joystick(){
+  if(EEPROM_DATA.need_to_calibrate){
+    calibrate_joystick();
+  }else{
+    ch1_offset = EEPROM_DATA.offset_x;
+    ch2_offset = EEPROM_DATA.offset_y;
+  }
+}
