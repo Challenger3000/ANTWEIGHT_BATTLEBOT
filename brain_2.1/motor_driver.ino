@@ -393,7 +393,7 @@ void init_drv8908(uint8_t config){
     write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
     write_register_drv8908(OLD_CTRL_3, 0b10000000);       // keep driving motors if open load is detected
     
-    write_register_drv8908(PWM_FREQ_CTRL_1, 0b11111111);  // set pwm freq to 200hz for all motors (default: 80, runs rough)
+    write_register_drv8908(PWM_FREQ_CTRL_1, 0b11111111);  // set pwm freq to 2000hz for all motors (default: 80, runs rough)
     write_register_drv8908(PWM_FREQ_CTRL_2, 0b11111111);  // 
     // write_register_drv8908(FW_CTRL_1, 0b11111111);     // enables active freewheeling (heats motors, runs rough, meh)
     write_register_drv8908(PWM_CTRL_2, 0xFF);             // disable pwm generation
@@ -414,7 +414,7 @@ void init_drv8908(uint8_t config){
     write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
     write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
     write_register_drv8908(OLD_CTRL_3, 0b10000000);       // over current protection deglitch time
-    write_register_drv8908(PWM_FREQ_CTRL_1, 0b11111111);  // set pwm freq to 200hz for all motors (default: 80, runs rough)
+    write_register_drv8908(PWM_FREQ_CTRL_1, 0b11111111);  // set pwm freq to 2000hz for all motors (default: 80, runs rough)
     write_register_drv8908(PWM_FREQ_CTRL_2, 0b11111111);  //
 
     write_register_drv8908(PWM_CTRL_2, 0xFF);             // disable pwm generation
