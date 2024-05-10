@@ -213,19 +213,20 @@ void switch_wireles_mode(){
   write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
 
   if(wireles_mode == 0){
+    led_state = WIFI_MODE;
+    led_update();
     wireles_mode = 1;
     esp_now_deinit();
     init_WifiWebServer();
-    led_state = WIFI_MODE;    
     drive_motor_A(COAST, 0);
     drive_motor_B(COAST, 0);
   }else{
+    led_state = RX_LOST;
+    led_update();
     wireles_mode = 0;
     server.end();
     init_esp_now();
     myPID.SetTunings(Kp,Ki,Kd);
-
-    led_state = RX_LOST;
     EEPROM_DATA.PID_P = Kp;
     EEPROM_DATA.PID_I = Ki;
     EEPROM_DATA.PID_D = Kd;

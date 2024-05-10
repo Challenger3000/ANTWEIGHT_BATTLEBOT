@@ -22,7 +22,8 @@ uint8_t read_register_drv8908(uint8_t read_register){
   SPI.endTransaction();
   delayMicroseconds(1);  
   digitalWrite(CHIP_SEL, HIGH);
-  delay(1);
+  delayMicroseconds(1);
+  // delay(1);
   return received_data;
 }
 
@@ -466,81 +467,61 @@ void driving_logic(){
     return;
   }
 
+  if(millis() - last_drive_command >= 10){
+    if(rxData.sw_2 == 0){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power
+      last_drive_command = millis();
+      new_rx_data = false;
 
-  if(rxData.sw_2 == 0 && millis() - last_drive_command >= 10){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power
-    last_drive_command = millis();
-    new_rx_data = false;
-
-    // mixing
-    if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-      motorA_output = rxData.y_axis-2048;
-      motorB_output = motorA_output;
-    }else{
-      motorA_output = 0;
-      motorB_output = 0;
-    }
-    
-    if(rxData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-      motorA_output += (rxData.x_axis-2048)/2;
-      motorB_output -= (rxData.x_axis-2048)/2;
-    }
-    
-    if(use_imu_for_yaw_rate){
-      if(accelData.accelZ > -0.5){
-        motorA_output -= round(Output);
-        motorB_output += round(Output);
+      // mixing
+      if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+        motorA_output = rxData.y_axis-2048;
+        motorB_output = motorA_output;
       }else{
-        // motorA_output += round(Output);
-        // motorB_output -= round(Output);
+        motorA_output = 0;
+        motorB_output = 0;
       }
-    }
-    drive_motors_forward_backward();
-  }
-
-  if(rxData.sw_2 == 1 && millis() - last_drive_command >= 10){
-    last_drive_command = millis();
-    new_rx_data = false;
-    
-    // mixing
-    if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-      motorA_output = rxData.y_axis-2048;
-      motorB_output = motorA_output;
-    }else{
-      motorA_output = 0;
-      motorB_output = 0;
-    }
-    
-    if(rxData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-      motorA_output += (rxData.x_axis-2048)/2;
-      motorB_output -= (rxData.x_axis-2048)/2;
+      
+      if(rxData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+        motorA_output += (rxData.x_axis-2048)/2;
+        motorB_output -= (rxData.x_axis-2048)/2;
+      }
+      
+      if(use_imu_for_yaw_rate){
+        if(accelData.accelZ > -0.5){
+          motorA_output -= round(Output);
+          motorB_output += round(Output);
+        }else{
+          // motorA_output += round(Output);
+          // motorB_output -= round(Output);
+        }
+      }
+      drive_motors_forward_backward();
     }
 
-    drive_motors_forward_backward();
-    // drive_motor_A(FORWARD, -1*constrain(map( rxData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
-    // drive_motor_B(FORWARD, constrain(map( rxData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
-    // drive_motor_C(FORWARD, constrain(map( rxData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
-    // drive_motor_D(FORWARD, -1*constrain(map( rxData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
+    if(rxData.sw_2 == 1){
+      last_drive_command = millis();
+      new_rx_data = false;
+      
+      // mixing
+      if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+        motorA_output = rxData.y_axis-2048;
+        motorB_output = motorA_output;
+      }else{
+        motorA_output = 0;
+        motorB_output = 0;
+      }
+      
+      if(rxData.x_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.x_axis < (2048 - GIMBAL_STICK_DEADZONE)){
+        motorA_output += (rxData.x_axis-2048)/2;
+        motorB_output -= (rxData.x_axis-2048)/2;
+      }
 
-    // // drive_motor_A(FORWARD, map( rxData.x_axis,2050 ,4096 ,0 ,255 ));
-    // // drive_motor_B(FORWARD, map( rxData.y_axis,0 ,2000 ,0 ,255 ));
-    
-    // // drive_motor_A(FORWARD, map( rxData.x_axis,0 ,4096 ,0 ,255 ));
-    // // drive_motor_B(FORWARD, map( rxData.y_axis,0 ,4096 ,0 ,255 ));
-
-    // Serial.print("RIGHT: ");
-    // Serial.print(constrain(map( rxData.x_axis,2050 ,4096 ,0 ,255 ),0,255));
-    // Serial.print(" , LEFT: ");
-    // Serial.print(-1*constrain(map( rxData.x_axis,2000 ,4096 ,0 ,255 ),-255,0));
-    
-    // Serial.print(" ,UP: ");
-    // Serial.print(constrain(map( rxData.y_axis,2050 ,4096 ,0 ,255 ),0,255));
-    // Serial.print(" , DOWN: ");
-    // Serial.print(-1*constrain(map( rxData.y_axis,2000 ,4096 ,0 ,255 ),-255,0));
-    
-    // Serial.print(" , X: ");
-    // Serial.print(rxData.x_axis);
-    // Serial.print(" , Y: ");
-    // Serial.println(rxData.y_axis);
+      drive_motors_forward_backward();
+    }
+  }else if(read_register_drv8908(OCP_STAT_1) != 0 || read_register_drv8908(OCP_STAT_2) != 0){
+    write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
+    led_color(255,255,0);
+    delay(100);
   }
 
   if(rxData.sw_2 == 2){

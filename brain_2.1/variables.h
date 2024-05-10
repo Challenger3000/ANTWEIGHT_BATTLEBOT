@@ -1,6 +1,6 @@
 // general variables start
 uint8_t wireles_mode = 0; // 0 - esp_now signal receiver. 1 - wifi web server
-double Kp=4.3, Ki=0, Kd=0.05;
+double Kp=1.7, Ki=0, Kd=0.015;
 
 bool new_rx_data = false;
 #define GIMBAL_STICK_DEADZONE 50
@@ -240,6 +240,7 @@ enum DRV8908_MOTOR_REGISTER_STATES {
 uint8_t drv8908_status = 0;
 bool drv8908_overcurrent = false;
 unsigned long last_drive_command = 0;
+
 
 uint8_t MOTOR_A1_STATE = A1_COAST;
 uint8_t MOTOR_B1_STATE = B1_COAST;

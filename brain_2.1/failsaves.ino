@@ -6,6 +6,8 @@ void failsafe(){
   drive_motor_A(COAST, 0);
   drive_motor_B(COAST, 0);
   drive_motor_C(COAST, 0);
-  drive_motor_D(COAST, 0);  
-  led_state = RX_LOST;
+  drive_motor_D(COAST, 0); 
+  if(wireles_mode == 0){
+    led_state = RX_LOST;
+  }
 }
