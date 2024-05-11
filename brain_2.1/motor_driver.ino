@@ -493,7 +493,9 @@ void driving_logic(){
           // motorB_output -= round(Output);
         }
       }
-      drive_motors_forward_backward();
+      if(motorA_output > -2048 && motorA_output < 2048 && motorB_output > -2048 && motorB_output < 2048){
+        drive_motors_forward_backward();
+      }
     }
 
     if(rxData.sw_2 == 1){
@@ -513,8 +515,11 @@ void driving_logic(){
         motorA_output += (rxData.x_axis-2048)/2;
         motorB_output -= (rxData.x_axis-2048)/2;
       }
-
-      drive_motors_forward_backward();
+      
+      if(motorA_output > -2048 && motorA_output < 2048 && motorB_output > -2048 && motorB_output < 2048){
+        drive_motors_forward_backward();
+      }
+      
     }
   }else if(read_register_drv8908(OCP_STAT_1) != 0 || read_register_drv8908(OCP_STAT_2) != 0){
     write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
