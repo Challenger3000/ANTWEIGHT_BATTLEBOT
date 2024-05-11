@@ -493,7 +493,7 @@ void driving_logic(){
           // motorB_output -= round(Output);
         }
       }
-      if(motorA_output > -2048 && motorA_output < 2048 && motorB_output > -2048 && motorB_output < 2048){
+      if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){
         drive_motors_forward_backward();
       }
     }
@@ -516,7 +516,7 @@ void driving_logic(){
         motorB_output -= (rxData.x_axis-2048)/2;
       }
       
-      if(motorA_output > -2048 && motorA_output < 2048 && motorB_output > -2048 && motorB_output < 2048){
+      if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){
         drive_motors_forward_backward();
       }
       
