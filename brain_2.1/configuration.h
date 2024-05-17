@@ -15,6 +15,8 @@ int servo_2_init_position = 0;              // initial servo position
 int servo_1_failsave_position = 0;          // initial servo position
 int servo_2_failsave_position = 0;          // initial servo position
 
+bool arming_throttle_protection = true;     // prevents esc from spinning if armed with above 0 throttle
+
 // Wifi related settings
 const char* ssid = "PID_SETUP_WIFI";
 const char* password = "12345678";

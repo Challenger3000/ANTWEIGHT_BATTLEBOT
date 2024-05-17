@@ -10,4 +10,6 @@ void failsafe(){
   if(wireles_mode == 0){
     led_state = RX_LOST;
   }
+  servo_1_was_0_before_arming = false;
+  servo_2_was_0_before_arming = false;
 }

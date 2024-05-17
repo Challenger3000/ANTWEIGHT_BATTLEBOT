@@ -455,17 +455,26 @@ void drive_motors_forward_backward(){
   }else if(motorB_output < 0){
     drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
   }
-  servo_1.write(map(rxData.pot_1,0,4950,0,180));
-  servo_2.write(map(rxData.pot_1,0,4950,0,180));
+  if(arming_throttle_protection){
+    if(servo_1_was_0_before_arming){
+      servo_1.write(map(rxData.pot_1,0,4950,0,180));      
+    }
+    if(servo_2_was_0_before_arming){
+      servo_2.write(map(rxData.pot_1,0,4950,0,180));
+    }
+  }
 }
 
 void driving_logic(){
   if((millis()-last_receive) > 100 ){   // if no packets for 100ms assume signal lost, so turn off motors.
     failsafe();
+    // Serial.println("failsave");
     return;
   }
 
   if(millis() - last_drive_command >= 10){
+    
+    // armed with pids
     if(rxData.sw_2 == 0){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power
       last_drive_command = millis();
       new_rx_data = false;
@@ -496,8 +505,10 @@ void driving_logic(){
       if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){
         drive_motors_forward_backward();
       }
+      
     }
 
+    // armed without pids
     if(rxData.sw_2 == 1){
       last_drive_command = millis();
       new_rx_data = false;
@@ -516,9 +527,7 @@ void driving_logic(){
         motorB_output -= (rxData.x_axis-2048)/2;
       }
       
-      if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){
-        drive_motors_forward_backward();
-      }
+      drive_motors_forward_backward();
       
     }
   }else if(read_register_drv8908(OCP_STAT_1) != 0 || read_register_drv8908(OCP_STAT_2) != 0){
@@ -527,8 +536,13 @@ void driving_logic(){
     delay(100);
   }
 
+  // disarmed
   if(rxData.sw_2 == 2){
     drive_motor_A(COAST,0);
     drive_motor_B(COAST,0);
+    servo_1.write(servo_1_failsave_position);
+    servo_2.write(servo_2_failsave_position);
+    servo_1_was_0_before_arming = false;
+    servo_2_was_0_before_arming = false;
   }
 }

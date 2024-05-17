@@ -107,6 +107,19 @@ void print_MAC(const uint8_t * mac_addr){
   Serial.println(macStr);
 }
 
+bool rx_packet_ok() {
+  if (rxData_early_check.mode == 1 &&
+      rxData_early_check.id == 1 &&
+      rxData_early_check.x_axis > -2 &&
+      rxData_early_check.x_axis < 5000 &&
+      rxData_early_check.y_axis > -2 &&
+      rxData_early_check.y_axis < 5000) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   if(binding_mode){
     memcpy(&rxData, incomingData, sizeof(rxData));
@@ -138,15 +151,18 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // add pear to list
     return;
   }else{
-    memcpy(&rxData, incomingData, sizeof(rxData));
-    last_receive = millis();
-    new_rx_data = true;
-    led_state = RX_RECEIVING;
-    int temp_setpoint = map(rxData.x_axis,0,4095,max_yaw_rate,-max_yaw_rate);
-    if(temp_setpoint > 6 || temp_setpoint < -6){
-      Setpoint = temp_setpoint;
-    }else{
-      Setpoint = 0;
+    memcpy(&rxData_early_check, incomingData, sizeof(rxData_early_check));
+    if(rx_packet_ok()){
+      memcpy(&rxData, incomingData, sizeof(rxData));
+      last_receive = millis();
+      new_rx_data = true;
+      led_state = RX_RECEIVING;
+      int temp_setpoint = map(rxData.x_axis,0,4095,max_yaw_rate,-max_yaw_rate);
+      if(temp_setpoint > 6 || temp_setpoint < -6){
+        Setpoint = temp_setpoint;
+      }else{
+        Setpoint = 0;
+      }
     }
   }
 }

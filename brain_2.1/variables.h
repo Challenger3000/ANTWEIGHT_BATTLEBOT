@@ -302,6 +302,7 @@ typedef struct struct_message {
   uint8_t mac[6];
 } struct_message;
 struct_message rxData;
+struct_message rxData_early_check;
 
 #include "esp_wifi.h"
 #include <esp_now.h>
@@ -328,4 +329,7 @@ unsigned long last_gpio_update = 0;
 #include <ESP32Servo.h>
 Servo servo_1;
 Servo servo_2;
+bool servo_1_was_0_before_arming = false;
+bool servo_2_was_0_before_arming = false;
+
 // servo variables end

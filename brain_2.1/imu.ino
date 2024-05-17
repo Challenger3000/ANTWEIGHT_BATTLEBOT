@@ -41,14 +41,14 @@ void init_imu(){
 
 void imu_print(){
   IMU.update();
-  IMU.getAccel(&accelData);
-  Serial.print(accelData.accelX);
-  Serial.print("\t");
-  Serial.print(accelData.accelY);
-  Serial.print("\t");
-  Serial.println(accelData.accelZ);
+  // IMU.getAccel(&accelData);
+  // Serial.print(accelData.accelX);
   // Serial.print("\t");
-  IMU.getGyro(&gyroData);
+  // Serial.print(accelData.accelY);
+  // Serial.print("\t");
+  // Serial.println(accelData.accelZ);
+  // Serial.print("\t");
+  // IMU.getGyro(&gyroData);
   // Serial.print(gyroData.gyroX);
   // Serial.print("\t");
   // Serial.print(gyroData.gyroY);
