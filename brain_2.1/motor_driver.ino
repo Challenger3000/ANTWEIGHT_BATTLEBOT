@@ -516,8 +516,13 @@ void driving_logic(){
       
       // mixing
       if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-        motorA_output = rxData.y_axis-2048;
-        motorB_output = motorA_output;
+        if(accelData.accelZ > 0){
+          motorA_output = rxData.y_axis-2048;
+          motorB_output = motorA_output;
+        }else{
+          motorA_output = -(rxData.y_axis-2048);
+          motorB_output = motorA_output;
+        }
       }else{
         motorA_output = 0;
         motorB_output = 0;
