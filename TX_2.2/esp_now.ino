@@ -21,8 +21,8 @@ void init_data_structures(){
   txData.sw_1   = 0;
   txData.sw_2   = 0;
   txData.sw_3   = 0;
-  txData.btn_A   = 0;
-  txData.btn_B   = 0;
+  txData.btn_A  = 0;
+  txData.btn_B  = 0;
   txData.ch09   = 0;
   txData.ch10   = 0;
   txData.ch11   = 0;
@@ -296,8 +296,8 @@ void send_data(){
   txData.pot_1  = analogRead(pot);
   txData.sw_1   = get_switch_1();
   txData.sw_2   = get_switch_2();
-  txData.sw_3   = get_switch_2();
-  txData.btn_A  = get_button_3();
+  txData.sw_3   = get_switch_3();
+  txData.btn_A  = get_button_A();
   txData.btn_B  = get_button_B();
   txData.ch09   = 50;
   txData.ch10   = 50;
