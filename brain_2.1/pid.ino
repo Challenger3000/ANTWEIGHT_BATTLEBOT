@@ -14,6 +14,12 @@ void init_pid(){
 }
 
 void update_pid(){
-  Input = (double) filtered_signal;
+
+  if(accelData.accelZ > -0.5){
+    Input = (double) filtered_signal;
+  }else{
+    Input = (double) -filtered_signal;
+  }
+
   myPID.Compute();
 }

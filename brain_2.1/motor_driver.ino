@@ -481,8 +481,14 @@ void driving_logic(){
 
       // mixing
       if(rxData.y_axis > (2048 + GIMBAL_STICK_DEADZONE) || rxData.y_axis < (2048 - GIMBAL_STICK_DEADZONE)){
-        motorA_output = rxData.y_axis-2048;
-        motorB_output = motorA_output;
+        
+        if(accelData.accelZ > -0.5){
+          motorA_output = rxData.y_axis-2048;
+          motorB_output = motorA_output;
+        }else{
+          motorA_output = -(rxData.y_axis-2048);
+          motorB_output = motorA_output;
+        }
       }else{
         motorA_output = 0;
         motorB_output = 0;
@@ -494,13 +500,8 @@ void driving_logic(){
       }
       
       if(use_imu_for_yaw_rate){
-        if(accelData.accelZ > -0.5){
-          motorA_output -= round(Output);
-          motorB_output += round(Output);
-        }else{
-          // motorA_output += round(Output);
-          // motorB_output -= round(Output);
-        }
+        motorA_output -= round(Output);
+        motorB_output += round(Output);
       }
       if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){
         drive_motors_forward_backward();
