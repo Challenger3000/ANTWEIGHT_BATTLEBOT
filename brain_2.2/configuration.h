@@ -32,5 +32,5 @@ unsigned int failsave_delay = 500;          // ms until failsave is activated.
 // hardware pins
 #define SERVO_1_PIN 38
 #define SERVO_2_PIN 37
-#define BUTTON 4
+#define BUTTON 35
 #define VSENSE 10
