@@ -25,6 +25,10 @@ const char* password = "12345678";
 bool use_imu_for_yaw_rate = true;           // if true, yaw rate will be adjusted from imu yaw rate
 #define max_yaw_rate 600                    // max yaw rate in degrees per second
 
+// failsave
+unsigned int failsave_delay = 500;          // ms until failsave is activated.
+#define WDT_TIMEOUT 1                       // watchdog timeout (1s)
+
 // hardware pins
 #define SERVO_1_PIN 38
 #define SERVO_2_PIN 37

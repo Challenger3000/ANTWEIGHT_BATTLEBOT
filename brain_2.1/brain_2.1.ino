@@ -1,7 +1,9 @@
 #include "variables.h"
 #include "configuration.h"
 
-void setup() {  
+#include <esp_task_wdt.h>
+
+void setup() {
   Serial.begin(115200);
   init_gpio();
   init_eeprom();
@@ -12,6 +14,7 @@ void setup() {
   init_imu();
   init_filter();
   init_drv8908(MOTOR_LAYOUT);
+  init_watchdog();
 }
 
 void loop() {

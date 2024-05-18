@@ -466,7 +466,7 @@ void drive_motors_forward_backward(){
 }
 
 void driving_logic(){
-  if((millis()-last_receive) > 100 ){   // if no packets for 100ms assume signal lost, so turn off motors.
+  if((millis()-last_receive) > failsave_delay ){   // if no packets for 100ms assume signal lost, so turn off motors.
     failsafe();
     // Serial.println("failsave");
     return;

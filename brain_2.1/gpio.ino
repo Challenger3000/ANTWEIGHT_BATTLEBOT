@@ -11,6 +11,7 @@ void update_gpio(){
     if(!digitalRead(BUTTON)){
       switch_wireles_mode();
     }
+    esp_task_wdt_reset();                 // reset watchdog, to prevent reboot
     // imu_print();
   }
 }
