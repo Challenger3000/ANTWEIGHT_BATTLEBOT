@@ -15,7 +15,7 @@ void init_pid(){
 
 void update_pid(){
 
-  if(accelData.accelZ > -0.5){
+  if(accelData.accelZ > 0){
     Input = (double) filtered_signal;
   }else{
     Input = (double) -filtered_signal;
