@@ -29,9 +29,18 @@ The main features of this code are...
 
 **Code uploading...**
 1. install Arduino IDE 2.3.2 from https://www.arduino.cc/en/software
-2. add "Arduino ESP32 Boards By Arduino" and "esp32 by Espressif" following this tutorial:
+2. add "Arduino ESP32 Boards By Arduino" and "esp32 by Espressif v2.0.16" following this tutorial:
 https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
-3. Try to compile, flash/verify, and install all libraries.
+
+IMPORTANT!!!
+
+To successfully compile code, make sure Esp32 library version is: 2.0.16
+
+Otherwise the code does not compile.
+
+![image](https://github.com/user-attachments/assets/ad70c75b-e2bb-4ebc-8276-4f5723ad4a58)
+
+4. Try to compile, flash/verify, and install all libraries.
    * AsyncTCP
    * ESPAsyncWebServer
    * FastLED
@@ -39,8 +48,8 @@ https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-window
    * 1euroFilter
    * PID
    * ESP32Servo   
-4. Connect robot, select com port and chose ESP32S3 Dev
-5. Set these parameters in arduino ide:
+5. Connect robot, select com port and chose ESP32S3 Dev
+6. Set these parameters in arduino ide:
 
 ![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/3b4f20c7-2340-4be0-b26f-d579e45eb88b)
 
