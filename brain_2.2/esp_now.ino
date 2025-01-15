@@ -22,6 +22,13 @@ void init_esp_now_rx(){
       peerInfo.encrypt = true;      
       memcpy(peerInfo.lmk, EEPROM_DATA.encryption_key, 16);
     	init_esp_now();
+    }else{
+      binding_mode = true;
+      init_esp_now();
+      led_color(0,10,10);
+      while(!binding()){
+        ;
+      }
     }
   }
 }
