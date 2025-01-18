@@ -12,6 +12,29 @@ long mapWithMidpoint(long value, long fromLow, long fromMid, long fromHigh, long
 }
 
 void calibrate_joystick(){
+  uint32_t warning_blink_start = millis();
+
+  // give warning before joystick midpoint calibration
+  while(millis() - warning_blink_start < 5000){
+    if(millis() % 500 < 250){      
+      leds[0] = CRGB( 0, 255, 0);
+      leds[1] = CRGB( 0, 255, 0);
+      leds[2] = CRGB( 0, 255, 0);
+      leds[3] = CRGB( 0, 255, 0);
+    }else{
+      leds[0] = CRGB( 255, 0, 0);
+      leds[1] = CRGB( 255, 0, 0);
+      leds[2] = CRGB( 255, 0, 0);
+      leds[3] = CRGB( 255, 0, 0);
+    }
+    FastLED.show();
+  }
+  leds[0] = CRGB( 0, 255, 0);
+  leds[1] = CRGB( 0, 255, 0);
+  leds[2] = CRGB( 0, 255, 0);
+  leds[3] = CRGB( 0, 255, 0);
+
+  FastLED.show();
   Serial.println("Calibrating josystick midpoint...");
   ch1_offset = 0;
   ch2_offset = 0;
@@ -31,6 +54,12 @@ void calibrate_joystick(){
   // calibrate joystick limits
   Serial.println("Calibrating joystick limits...");
   Serial.println("move joystick to all limits for 10sec");
+  
+  leds[0] = CRGB(255, 255, 0);
+  leds[1] = CRGB(255, 255, 0);
+  leds[2] = CRGB(255, 255, 0);
+  leds[3] = CRGB(255, 255, 0);
+  FastLED.show();
   delay(1000);
   unsigned long start_time = millis();
   uint16_t x_low  = 2048;
@@ -51,6 +80,14 @@ void calibrate_joystick(){
   EEPROM_DATA.calib_x_high = x_high - 100;
   EEPROM_DATA.calib_y_low  = y_low + 100;
   EEPROM_DATA.calib_y_high = y_high - 100;
+
+  leds[0] = CRGB(255,0 , 0);
+  leds[1] = CRGB(255,0 , 0);
+  leds[2] = CRGB(255,0 , 0);
+  leds[3] = CRGB(255,0 , 0);
+  FastLED.show();
+  
+  delay(2000);
 
   EEPROM.put(EEPROM_ADDRES, EEPROM_DATA);
   EEPROM.commit();
@@ -82,5 +119,10 @@ void init_joystick(){
   }else{
     ch1_offset = EEPROM_DATA.offset_x;
     ch2_offset = EEPROM_DATA.offset_y;
+    if(analogRead(g_x) > 3000 &&
+      analogRead(g_y) < 1000
+    ){
+      calibrate_joystick();
+    }
   }
 }

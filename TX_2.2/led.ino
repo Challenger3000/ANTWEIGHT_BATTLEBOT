@@ -59,8 +59,26 @@ void update_leds(){
     }
   }
 
-  // leds 2 and 3 are free to be used as a general purpouse indicator
-  led_color(2, 10, 10, 10);
+  if(
+    mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095) == 0 ||
+    mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095) == 4095
+  ){
+    led_color(2, 255, 0, 0);
+  }else{
+    led_color(2, 0, 255, 0);
+  }
 
-  led_color(3, 10, 10, 10);
+  if(
+    mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095) == 0 ||
+    mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095) == 4095
+  ){
+    led_color(3, 255, 0, 0);
+  }else{
+    led_color(3, 0, 255, 0);
+  }
+
+  // leds 2 and 3 are free to be used as a general purpouse indicator (currtly used to visually display joystick calibration)  
+  // led_color(2, 10, 10, 10);
+
+  // led_color(3, 10, 10, 10);
 }

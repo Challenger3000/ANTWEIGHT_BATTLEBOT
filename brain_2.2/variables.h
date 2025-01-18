@@ -178,7 +178,7 @@ bool up_side_down = false;
 #include "1euroFilter.h"
 static OneEuroFilter f; 
 #define FREQUENCY   120   // [Hz] 
-#define MINCUTOFF   50.0   // [Hz] needs to be tuned according to your application
+#define MINCUTOFF   20.0   // [Hz] needs to be tuned according to your application
 #define BETA        10.0   // needs to be tuned according to your application
 
 unsigned long start_time;

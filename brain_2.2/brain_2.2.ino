@@ -4,7 +4,7 @@
 #include <esp_task_wdt.h>
 
 void setup() {
-  Serial.begin(115200);
+  // Serial.begin(115200);
   init_gpio();
   init_eeprom();
   init_led();

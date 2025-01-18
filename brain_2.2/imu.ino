@@ -5,8 +5,8 @@ void init_imu(){
 
   int err = IMU.init(calib, IMU_ADDRESS);
   if (err != 0) {
-    Serial.print("Error initializing IMU: ");
-    Serial.println(err);
+    // Serial.print("Error initializing IMU: ");
+    // Serial.println(err);
     while (true) {
       ;
     }
@@ -26,12 +26,12 @@ void init_imu(){
   IMU.init(calib, IMU_ADDRESS);
 #endif
 
-  //err = IMU.setGyroRange(500);      //USE THESE TO SET THE RANGE, IF AN INVALID RANGE IS SET IT WILL RETURN -1
+  err = IMU.setGyroRange(1000);      //USE THESE TO SET THE RANGE, IF AN INVALID RANGE IS SET IT WILL RETURN -1
   //err = IMU.setAccelRange(2);       //THESE TWO SET THE GYRO RANGE TO ±500 DPS AND THE ACCELEROMETER RANGE TO ±2g
   
   if (err != 0) {
-    Serial.print("Error Setting range: ");
-    Serial.println(err);
+    // Serial.print("Error Setting range: ");
+    // Serial.println(err);
     while (true) {
       ;
     }

@@ -5,6 +5,12 @@ void init_gpio(){
 
 void update_gpio(){
   if(millis() - last_gpio_update > 100){
+
+    // reboot if imu/pid lib overflows (happens every 71st minute cause of -micros() )
+    if(motorA_output > 1000000000){
+      ESP.restart();
+    }
+
     check_servo_0_before_arming();
     last_gpio_update = millis();
     send_voltage_telemety();

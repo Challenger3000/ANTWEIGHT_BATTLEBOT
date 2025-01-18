@@ -42,7 +42,7 @@ void printMAC(const uint8_t * mac_addr){
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-  Serial.println(macStr);
+  // Serial.println(macStr);
 }
 
 bool binding(){
@@ -140,7 +140,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       peerInfo.encrypt = true;      
       memcpy(peerInfo.lmk, rxData.string, 16);
       if (esp_now_add_peer(&peerInfo) != ESP_OK){
-        Serial.println("Failed to add peer");
+        // Serial.println("Failed to add peer");
         return;
       }
 
@@ -177,7 +177,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 void init_esp_now(){
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != 0) {
-    Serial.println("Error initializing ESP-NOW");
+    // Serial.println("Error initializing ESP-NOW");
     return;
   }
 
@@ -187,13 +187,13 @@ void init_esp_now(){
     peerInfo.encrypt = false;
 
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
-      Serial.println("Failed to add peer");
+      // Serial.println("Failed to add peer");
       return;
     }
     change_channel(binding_ch);
   }else{
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
-      Serial.println("Failed to add peer");
+      // Serial.println("Failed to add peer");
       return;
     }
     change_channel(sending_ch);

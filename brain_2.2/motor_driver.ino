@@ -371,9 +371,9 @@ void read_drv8908_status(){
   delayMicroseconds(1);
   digitalWrite(CHIP_SEL, HIGH);
 
-  Serial.print(drv8908_status, BIN);
-  Serial.print("\t");
-  Serial.println(received_data, BIN);
+  // Serial.print(drv8908_status, BIN);
+  // Serial.print("\t");
+  // Serial.println(received_data, BIN);
   delay(1);
 }
 
@@ -551,4 +551,10 @@ void driving_logic(){
     servo_1_was_0_before_arming = false;
     servo_2_was_0_before_arming = false;
   }
+
+  // Serial.print(rxData.y_axis);
+  // Serial.print("\t");
+  // Serial.print(Output);
+  // Serial.print("\t");
+  // Serial.println(motorA_output);
 }

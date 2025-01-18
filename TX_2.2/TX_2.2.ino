@@ -165,13 +165,16 @@ void setup() {
 
 void loop() {
 
-
-  if(millis()-last_led_update > 250){
+  if(millis()-last_led_update > 25){
     last_led_update = millis();
     update_leds();
 
     // print all hardware pin values
     
+    // Serial.print("x: ");
+    // Serial.print(mapWithMidpoint(constrain(analogRead(g_x),EEPROM_DATA.calib_x_low ,EEPROM_DATA.calib_x_high), EEPROM_DATA.calib_x_low, ch1_offset, EEPROM_DATA.calib_x_high, 0, 4095));
+    // Serial.print("\ty: ");
+    // Serial.print(mapWithMidpoint(constrain(analogRead(g_y),EEPROM_DATA.calib_y_low,EEPROM_DATA.calib_y_high), EEPROM_DATA.calib_y_low, ch2_offset, EEPROM_DATA.calib_y_high, 0, 4095));
     // Serial.print("g_x: ");
     // Serial.print(analogRead(g_x));
     // Serial.print("\tg_y: ");
