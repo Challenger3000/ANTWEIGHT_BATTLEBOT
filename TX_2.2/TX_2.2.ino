@@ -164,7 +164,6 @@ void setup() {
 }
 
 void loop() {
-
   if(millis()-last_led_update > 25){
     last_led_update = millis();
     update_leds();
