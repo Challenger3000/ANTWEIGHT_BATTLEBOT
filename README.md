@@ -21,11 +21,12 @@ Transmitter hardware consists of
 
 
 The main features of this code are...
-1. Conveneinent binding between robot ant transmitter
+1. Conveneinent binding between robot and transmitter
 2. Simple interface with the motor driver
 3. 2x servo outputs on pins IO37 and IO38
 4. PID control loop for yaw rate control
 5. Website hosting over wifi for PID/Configuration setting changes.
+6. Robot battery telemetry ais ccessible on the remote.
 
 **Code uploading...**
 1. install Arduino IDE 2.3.2 from https://www.arduino.cc/en/software
@@ -38,7 +39,7 @@ To successfully compile code, make sure Esp32 library version is: 2.0.16
 
 Otherwise the code does not compile.
 
-![image](https://github.com/user-attachments/assets/ad70c75b-e2bb-4ebc-8276-4f5723ad4a58)
+<img src="https://github.com/user-attachments/assets/ad70c75b-e2bb-4ebc-8276-4f5723ad4a58" alt="image description" style="width: 30%; height: auto;"/>
 
 4. Try to compile, flash/verify, and install all libraries.
    * AsyncTCP
@@ -51,9 +52,17 @@ Otherwise the code does not compile.
 5. Connect robot, select com port and chose ESP32S3 Dev
 6. Set these parameters in arduino ide:
 
-![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/3b4f20c7-2340-4be0-b26f-d579e45eb88b)
+<img src="https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/3b4f20c7-2340-4be0-b26f-d579e45eb88b" alt="image description" style="width: 40%; height: auto;"/>
 
-7. Upload code, if exit status 1 or status 2, then hold the programming button while adding power to robot controller, and retry upload.  
+7. Upload code....
+If you encounter exit status 1 or status 2, or the IDE claims the controller does not respond...
+This means that the BootLoader has been corrupted. Usually caused by flashing Firmware with ERASER ALL FLASH enabled.
+To fix this...
+1. Hold down PROGRAM button found on the back side of the main board while powering on.
+2. Select Esptool as the programmer in the tools dropdown menu,
+3. Click BurnBootloader button within tools doropdown menu (takes about 15-20s to complete)
+4. After you see "Hard reset" message in the console, upload the code again.
+After upload perform a reboot, and you should be able to upload the code without heaving to press the PROGRAM button every time
 
 **Binding process...**
 
@@ -97,25 +106,49 @@ Green - connected,
 Yellow - motor driver over current
 
 Robot board consists of main brain with the driver, and imu. and an addon charger board. 
+REMEBER TO SHORT THE CORRECT SOLDER BRIDGE CORSPONDING TO YOUR BATTERY!
+(Default is 3s)
 
-
-![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/5f309d43-2840-40ca-801e-7a01e9710031)
-![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/db7778c4-27f8-436b-be8a-a035e42542d5)
-![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/d8dc95cc-22ef-4ea0-a8a9-47e5171e8d5c)
-![image](https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/c964265b-a961-4c52-9257-dbc815d25be4)
-
+<img src="https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/5f309d43-2840-40ca-801e-7a01e9710031" alt="image description" style="width: 40%; height: auto;"/>
+<img src="https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/db7778c4-27f8-436b-be8a-a035e42542d5" alt="image description" style="width: 40%; height: auto;"/>
+<img src="https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/d8dc95cc-22ef-4ea0-a8a9-47e5171e8d5c" alt="image description" style="width: 40%; height: auto;"/>
+<img src="https://github.com/Challenger3000/ANTWEIGHT_BATTLEBOT/assets/73142814/c964265b-a961-4c52-9257-dbc815d25be4" alt="image description" style="width: 40%; height: auto;"/>
 
 **Transmitter has 4 addressable LEDs...**
 
-By default 1st one from the left is the transmitter battery status with the following colors
-green - yellow - red - red blinking.... all of them represent the charge state of the remote.
-2nd one is robot status:
-green - yellow - red - red blinking.... all of them represent the charge state of the robot.
-Blue/cyan blinking - binding mode
-The 2 right LEDs on the remote are RGB controllable, and are not currently used,
+* 1st LED ... green - yellow - red - red blinking - black.... the color state represents the charge state of the remote.
+* 2nd LED ...
+  * green - yellow - red - red blinking - black.... all of them represent the charge state of the robot. (only if telemetry from robot is present)
+  * Blue/cyan blinking - binding mod.
+* 3rd LED joystick X-axis calibration indicator
+* 4rd LED joystick Y-axis calibration indicator
+
+**Transmitter joystick calibration**
+3rd and 4th LEDs help identify a bad joystick calibration.
+Both LEDs represent joystick data after applying limit and midpoint calibration.
+3rd LED - x-axis, 4th LED - y axis.
+  * green - axis centered,
+  * yellow - axis is moved off center,
+  * red - axis at the limit of travel.
+
+If you dont see a green indicator on 3rd and 4th LED while stick is in the middle,
+this means that the stick is not calibrated correctly.
+To calibrate the youstick,
+  1. Pull the stick to the left bottom corner while powering on the remote.
+  2. Release the stick once you see RED - GREEN blinking indicators on ALL LEDs.
+     (while the LEDs indicate a solid RED color, its calibrating the midpoint of the joystick, so do not move it)
+  3. When all 4 leds indicate a YELLOW light, move the stick around to all corners and edges.
+     (this stage lasts for 10s, I usually just rotate it clockwise and counterclockwise for 3 times each.)
+  4. When you see a green light, the calibration is finishes and parameters saved.
 
 
 **Keep in mind!**
 
 Esp32 s3 doesn't like Printing in serial while no serial connection is present, so comment out all serial print or use switches on the transmitter to enable/disable serial prints on the robot/transmitter.
 If you do a lot of printing, with no serial cable attached, ESP will start to lag
+
+**TODO**
+1. Need to organize and clean transmitter code.
+2. Update the code to work with the newer version of ESP32 and FastLED librarys...
+3. Switch to a newer/better/from scratch IMU/PID library, cause the current ones stop working after "micros()" overflows.
+4. Add support for brushels esc drive.
