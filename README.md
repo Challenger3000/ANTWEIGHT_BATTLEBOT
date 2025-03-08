@@ -1,6 +1,6 @@
 "# ANTWEIGHT_ESP_BATTLEBOT" 
 
-This is an example code that is meant to run an ESP32S3 battlebot / remote combo 
+This is an example code that is meant to run an ESP32S3 battlebot / remote 
 
 The main brain of the robot has the following hardware
 1. ESP32S3
@@ -8,7 +8,7 @@ The main brain of the robot has the following hardware
 3. 3.3v regulator
 4. 5.0v regulator
 5. LSM6DSLTR Gyro/accelerometer
-6. individually addressable RGB LEDs
+6. RGB LED
 7. 1-4s battery charger
 
 Transmitter hardware consists of 
@@ -20,7 +20,7 @@ Transmitter hardware consists of
 
 
 
-The main features of this code are...
+The main features of this code ...
 1. Conveneinent binding between robot and transmitter
 2. Simple interface with the motor driver
 3. 2x servo outputs on pins IO37 and IO38
