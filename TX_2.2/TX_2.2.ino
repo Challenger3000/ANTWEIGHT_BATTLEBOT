@@ -74,9 +74,15 @@ esp_now_peer_info_t peerInfo;
 #define switch_2_up   12
 #define switch_2_down 11
 #define switch_3      13
-#define BTN_A 9
-#define BTN_B 21
 #define vbat 8
+
+// rev 1
+// #define BTN_A 9
+// #define BTN_B 21
+
+// rev 2
+#define BTN_A 21
+#define BTN_B 9
 
 // variables
 typedef struct struct_message_rx {
@@ -143,7 +149,7 @@ int rssi_last;
 unsigned long last_list_print = 0;
 
 void setup() {
-  Serial.begin(115200);
+  // Serial.begin(115200);
   init_led();
   init_eeprom();
   init_gpio();

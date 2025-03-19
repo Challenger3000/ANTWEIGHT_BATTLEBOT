@@ -457,11 +457,16 @@ void drive_motors_forward_backward(){
   }
   if(arming_throttle_protection){
     if(servo_1_was_0_before_arming){
-      servo_1.write(map(rxData.pot_1,0,4950,0,180));      
+      servo_1.write(map(rxData.pot_1,0,4950,0,255));
     }
     if(servo_2_was_0_before_arming){
-      servo_2.write(map(rxData.pot_1,0,4950,0,180));
+      servo_2.write(map(rxData.pot_1,0,4950,0,255));
     }
+  }else{    
+    servo_1_was_0_before_arming = false;
+    servo_2_was_0_before_arming = false;
+    servo_1.write(servo_1_failsave_position);
+    servo_2.write(servo_2_failsave_position);
   }
 }
 
@@ -486,7 +491,7 @@ void driving_logic(){
           motorA_output = rxData.y_axis-2048;
           motorB_output = motorA_output;
         }else{
-          motorA_output = -(rxData.y_axis-2048);
+          motorA_output = -(rxData.y_axis+2048);
           motorB_output = motorA_output;
         }
       }else{
@@ -503,7 +508,7 @@ void driving_logic(){
         motorA_output -= round(Output);
         motorB_output += round(Output);
       }
-      if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){
+      if(motorA_output > -10000 && motorA_output < 10000 && motorB_output > -10000 && motorB_output < 10000){        
         drive_motors_forward_backward();
       }
       
@@ -520,7 +525,7 @@ void driving_logic(){
           motorA_output = rxData.y_axis-2048;
           motorB_output = motorA_output;
         }else{
-          motorA_output = -(rxData.y_axis-2048);
+          motorA_output = -(rxData.y_axis+2048);
           motorB_output = motorA_output;
         }
       }else{
@@ -539,7 +544,7 @@ void driving_logic(){
   }else if(read_register_drv8908(OCP_STAT_1) != 0 || read_register_drv8908(OCP_STAT_2) != 0){
     write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
     led_color(255,255,0);
-    delay(100);
+    delay(1);
   }
 
   // disarmed
