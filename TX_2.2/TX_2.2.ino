@@ -76,11 +76,11 @@ esp_now_peer_info_t peerInfo;
 #define switch_3      13
 #define vbat 8
 
-// rev 1
+// rev 2.0
 // #define BTN_A 9
 // #define BTN_B 21
 
-// rev 2
+// rev 2.1
 #define BTN_A 21
 #define BTN_B 9
 
