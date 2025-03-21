@@ -147,6 +147,20 @@ To calibrate the youstick,
 Esp32 s3 doesn't like Printing in serial while no serial connection is present, so comment out all serial print or use switches on the transmitter to enable/disable serial prints on the robot/transmitter.
 If you do a lot of printing, with no serial cable attached, ESP will start to lag
 
+**Hardware revision changelog**
+Revision v2.0 remote VS v2.1:
+
+<img src="https://github.com/user-attachments/assets/9caffe2e-bcbd-4688-930e-415923372612" alt="image description" style="width: 40%; height: auto;"/>
+
+Diffrence: A/B push buttons swapped, NEW more durrable power switch.
+
+
+Revision v2.0 brain board VS v2.1:
+
+<img src="https://github.com/user-attachments/assets/8c855c06-a075-4f53-bf21-b9bc47527fe5" alt="image description" style="width: 40%; height: auto;"/>
+
+Diffrence: Added extra VSENSE pin for higher voltage weapon battery (drive batery VSENSE moved to pin 9 from 10. New extra VSENSE pin 10)
+
 **TODO**
 1. Need to organize and clean transmitter code.
 2. Update the code to work with the newer version of ESP32 and FastLED librarys...
