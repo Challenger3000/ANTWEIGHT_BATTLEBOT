@@ -33,5 +33,10 @@ unsigned int failsave_delay = 500;          // ms until failsave is activated.
 #define SERVO_1_PIN 38
 #define SERVO_2_PIN 37
 #define BUTTON 4
+
+// rev 2.0
+// #define VSENSE 10
+
+// rev v2.1
 #define VSENSE 9
-// #define V_EXTERNAL_SENSE 10 // new pin, added on rev_2 brain boards. can be used to detect voltage of an external battery
+// #define VSENSE 10 // changed on rev_2.1 brain boards. can be used to detect voltage of extra external battery
