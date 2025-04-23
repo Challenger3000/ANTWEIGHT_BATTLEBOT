@@ -147,6 +147,8 @@ To calibrate the youstick,
 Esp32 s3 doesn't like Printing in serial while no serial connection is present, so comment out all serial print or use switches on the transmitter to enable/disable serial prints on the robot/transmitter.
 If you do a lot of printing, with no serial cable attached, ESP will start to lag
 
+While connecting the usb extension board, make sure d+ and d- are connected accordingly.
+
 **Hardware revision changelog**
 Revision v2.0 remote VS v2.1:
 
