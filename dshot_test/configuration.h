@@ -4,7 +4,8 @@ bool motors_on = true;                      // turns on and off all motors in on
 #define max_throttle 255                    // max throttle value  
 // INDIVIDUAL_A_B_C_D - for 1x4 individual motors.
 // PARALEL_AC_BD      - for 2x2 motors with A C outputs and B D outputs being paralel.
-uint8_t MOTOR_LAYOUT = PARALEL_AC_BD;       // selects motor layout betwheen 2 paralel, and 4 individual
+// DSHOT              - if brushless motors ar used for drive 
+uint8_t MOTOR_LAYOUT = DSHOT;       // selects motor layout betwheen 2 paralel, and 4 individual
 float battery_critical_v = 3.0;
 #define cell_count 2.0;
 
@@ -28,6 +29,12 @@ bool use_imu_for_yaw_rate = true;           // if true, yaw rate will be adjuste
 // failsave
 unsigned int failsave_delay = 500;          // ms until failsave is activated.
 #define WDT_TIMEOUT 1                       // watchdog timeout (1s)
+esp_task_wdt_config_t twdt_config = 
+{
+  .timeout_ms = WDT_TIMEOUT,
+  .idle_core_mask = 0,
+  .trigger_panic = true,
+};
 
 // hardware pins
 #define SERVO_1_PIN 38

@@ -377,6 +377,7 @@ void read_drv8908_status(){
   delay(1);
 }
 
+
 void init_drv8908(uint8_t config){
   pinMode(CHIP_SEL,OUTPUT);
   pinMode(FAULT, INPUT);
@@ -384,9 +385,9 @@ void init_drv8908(uint8_t config){
   digitalWrite(SLEEP, HIGH); 
   SPI.begin(SCK, MISO, MOSI, CHIP_SEL);
   delay(1);
-
+  
   switch (config) {
-  case PARALEL_AC_BD:
+    case PARALEL_AC_BD:
     write_register_drv8908(SR_CTRL_1, 0xFF);              // Enabling slow slew rate to hopefully prevent overcurrent
     
     write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
@@ -402,23 +403,23 @@ void init_drv8908(uint8_t config){
     write_register_drv8908(PWM_MAP_CTRL_2, 0b00000000);   // PWM CH1 to OUT_3 and OUT_4
     write_register_drv8908(PWM_MAP_CTRL_3, 0b00000001);   // PWM CH1 to OUT_6 and PWM CH2 to OUT_5
     write_register_drv8908(PWM_MAP_CTRL_4, 0b00001000);   // PWM CH1 to OUT_7 and PWM CH2 to OUT_8
-
+    
     write_register_drv8908(PWM_DUTY_1, 0);                // sets motor duty cycle
     write_register_drv8908(PWM_DUTY_2, 0);                // sets motor duty cycle
-
+    
     write_register_drv8908(PWM_CTRL_2, 0x00);             // enable pwm generation
     break;
-  case INDIVIDUAL_A_B_C_D:  
+    case INDIVIDUAL_A_B_C_D:  
     write_register_drv8908(SR_CTRL_1, 0xFF);              // Enabling slow slew rate to hopefully prevent overcurrent
-
+    
     write_register_drv8908(PWM_CTRL_1, 0b11111111);       // set all half-bridges to PWM control
     write_register_drv8908(OLD_CTRL_2, 0b01000000);       // keep driving motors if open load is detected
     write_register_drv8908(OLD_CTRL_3, 0b10000000);       // over current protection deglitch time
     write_register_drv8908(PWM_FREQ_CTRL_1, 0b11111111);  // set pwm freq to 2000hz for all motors (default: 80, runs rough)
     write_register_drv8908(PWM_FREQ_CTRL_2, 0b11111111);  //
-
+    
     write_register_drv8908(PWM_CTRL_2, 0xFF);             // disable pwm generation
-
+    
     // map PWM chanels to halfbridges    
     write_register_drv8908(PWM_MAP_CTRL_1, 0b00011001);   // PWM CH2 to OUT_1 and PWM CH4 to OUT_2
     write_register_drv8908(PWM_MAP_CTRL_2, 0b00000000);   // PWM CH1 to OUT_3 and OUT_4
@@ -437,24 +438,64 @@ void init_drv8908(uint8_t config){
   // read_drv8908_status();
 }
 
+DShotRMT motor01(MOTOR01_PIN, DSHOT_MODE, IS_BIDIRECTIONAL, 20);
+DShotRMT motor02(MOTOR02_PIN, DSHOT_MODE, IS_BIDIRECTIONAL, 20);
+// DShotRMT motor03(MOTOR03_PIN, DSHOT_MODE, IS_BIDIRECTIONAL, 20);
+
+void init_DSHOT(){  
+  motor01.begin();
+  motor02.begin();
+  // motor03.begin();
+}
+
+void init_motors(){
+  if(MOTOR_LAYOUT == DSHOT){
+    init_DSHOT();
+  }else{
+    init_drv8908(MOTOR_LAYOUT);
+  }
+}
 
 void drive_motors_forward_backward(){
-  // driving
-  if(motorA_output == 0){
-    drive_motor_A(COAST, 0);
-  }else if(motorA_output > 0){
-    drive_motor_A(FORWARD,  map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-  }else if(motorA_output < 0){
-    drive_motor_A(BACKWARD, map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+  
+  if(MOTOR_LAYOUT == DSHOT){ // driving with DSHOT
+    if(motorA_output == 0){
+      motor01.sendThrottle(DSHOT_CMD_MIN);
+      // Serial.println(DSHOT_MIN_THROTTLE);
+    }else if(motorA_output > 0){
+      motor01.sendThrottle( map( constrain( motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
+      Serial.println( map( constrain( motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
+    }
+    else if(motorA_output < 0){
+      motor01.sendThrottle( map( constrain( -motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
+      Serial.println( map( constrain( -motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
+    }
+    if(motorB_output == 0){
+      motor02.sendThrottle(DSHOT_CMD_MIN);
+    }else if(motorB_output > 0){
+      motor02.sendThrottle( map( constrain( motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
+    }
+    else if(motorB_output < 0){
+      motor02.sendThrottle( map( constrain( -motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
+    }
+  }else{  // driving with drv8908
+    if(motorA_output == 0){
+      drive_motor_A(COAST, 0);
+    }else if(motorA_output > 0){
+      drive_motor_A(FORWARD,  map(constrain(motorA_output,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+    }else if(motorA_output < 0){
+      drive_motor_A(BACKWARD, map(constrain(motorA_output,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+    }
+  
+    if(motorB_output == 0){
+      drive_motor_B(COAST, 0);
+    }else if(motorB_output > 0){
+      drive_motor_B(BACKWARD,  map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
+    }else if(motorB_output < 0){
+      drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
+    }
   }
 
-  if(motorB_output == 0){
-    drive_motor_B(COAST, 0);
-  }else if(motorB_output > 0){
-    drive_motor_B(BACKWARD,  map(constrain(motorB_output ,0 ,2048  ) ,0 ,2048  ,0 ,255 ));
-  }else if(motorB_output < 0){
-    drive_motor_B(FORWARD, map(constrain(motorB_output ,-2048 ,0 ) ,0 ,-2048 ,0 ,255 ));
-  }
   if(arming_throttle_protection){
     if(servo_1_was_0_before_arming){
       servo_1.write(map(rxData.pot_1,0,4950,0,255));
@@ -462,7 +503,7 @@ void drive_motors_forward_backward(){
     if(servo_2_was_0_before_arming){
       servo_2.write(map(rxData.pot_1,0,4950,0,255));
     }
-  }else{    
+  }else{
     servo_1_was_0_before_arming = false;
     servo_2_was_0_before_arming = false;
     servo_1.write(servo_1_failsave_position);
@@ -477,7 +518,7 @@ void driving_logic(){
     return;
   }
 
-  if(millis() - last_drive_command >= 10){
+  if(millis() - last_drive_command >= 1){
     
     // armed with pids
     if(rxData.sw_2 == 0){    // if you write to the motors too fast, the driver wount be able to finish a full pwm cycle, so it will not drive the motors at full power

@@ -2,10 +2,9 @@
 #include "configuration.h"
 #include <esp_now.h>
 
-#include <esp_task_wdt.h>
 
 void setup() {
-  // Serial.begin(115200);
+  Serial.begin(115200);
   init_gpio();
   init_eeprom();
   init_led();
@@ -14,8 +13,8 @@ void setup() {
   init_servo();
   init_imu();
   init_filter();
-  init_drv8908(MOTOR_LAYOUT);
-  // init_watchdog();
+  init_motors();
+  init_watchdog();
 }
 
 void loop() {

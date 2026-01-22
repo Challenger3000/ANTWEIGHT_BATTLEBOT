@@ -1,6 +1,6 @@
 // general variables start
 uint8_t wireles_mode = 0; // 0 - esp_now signal receiver. 1 - wifi web server
-double Kp=1.7, Ki=0, Kd=0.015;
+double Kp=0.7, Ki=0, Kd=0.005;
 
 bool new_rx_data = false;
 #define GIMBAL_STICK_DEADZONE 50
@@ -8,9 +8,9 @@ int motorA_output = 0;
 int motorB_output = 0;
 int motorC_output = 0;
 int motorD_output = 0;
-
 // general variables end
 
+#include <esp_task_wdt.h>
 
 // wifi website variables start
 #include <WiFi.h>
@@ -196,11 +196,29 @@ double Setpoint, Input, Output;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 // pid variables end
 
+// DSHOT variables start
+#include <Arduino.h>
+#include <DShotRMT.h>
+static constexpr gpio_num_t MOTOR01_PIN = GPIO_NUM_35;
+static constexpr gpio_num_t MOTOR02_PIN = GPIO_NUM_36;
+static constexpr gpio_num_t MOTOR03_PIN = GPIO_NUM_18;
+static constexpr dshot_mode_t DSHOT_MODE = DSHOT600;
+static constexpr bool IS_BIDIRECTIONAL = false;
+static constexpr int DSHOT_MIN_THROTTLE = 48;
+static constexpr int DSHOT_MID_THROTTLE = 1047;
+static constexpr int DSHOT_MAX_THROTTLE = 2047;
+int currentCmd1 = 0;
+int currentCmd2 = 0;
+int currentCmd3 = 0;
 
-// motor driver variables start
+
+// DSHOT variables end
+
+// drv8908 motor driver variables start
 enum DRV8908_MOTOR_CONFIG {
   PARALEL_AC_BD,
-  INDIVIDUAL_A_B_C_D
+  INDIVIDUAL_A_B_C_D,
+  DSHOT
 };
 enum DRV8908_MOTOR_STATES {
   FORWARD,
@@ -270,7 +288,7 @@ enum DRV8908_REGISTERS {
   OLD_CTRL_1,  OLD_CTRL_2,  OLD_CTRL_3,  OLD_CTRL_4,  OLD_CTRL_5,  OLD_CTRL_6,
   REGISTERS_COUNT
 };
-// motor driver variables end
+// drv8908 motor driver variables end
 
 
 // esp_now variables start
