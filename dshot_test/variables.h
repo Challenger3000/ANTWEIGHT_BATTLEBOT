@@ -219,7 +219,8 @@ int currentCmd3 = 0;
 enum DRV8908_MOTOR_CONFIG {
   PARALEL_AC_BD,
   INDIVIDUAL_A_B_C_D,
-  DSHOT
+  DSHOT,
+  PWM
 };
 enum DRV8908_MOTOR_STATES {
   FORWARD,
@@ -348,6 +349,8 @@ unsigned long last_gpio_update = 0;
 #include <ESP32Servo.h>
 Servo servo_1;
 Servo servo_2;
+Servo pwm_drive_1;
+Servo pwm_drive_2;
 bool servo_1_was_0_before_arming = false;
 bool servo_2_was_0_before_arming = false;
 

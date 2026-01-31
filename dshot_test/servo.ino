@@ -12,6 +12,14 @@ void init_servo(){
 	servo_2.setPeriodHertz(50);
 	servo_2.attach(SERVO_2_PIN, 1000, 2000);
   servo_2.write(servo_2_init_position);
+  
+	pwm_drive_1.setPeriodHertz(50);
+	pwm_drive_1.attach(PWM_DRIVE_1_PIN, 1000, 2000);
+  pwm_drive_1.write(0);
+
+	pwm_drive_2.setPeriodHertz(50);
+	pwm_drive_2.attach(PWM_DRIVE_2_PIN, 1000, 2000);
+  pwm_drive_2.write(0);
 }
 
 // checks that servos where at 0 throttle before applying signal

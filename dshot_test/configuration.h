@@ -5,8 +5,8 @@ bool motors_on = true;                      // turns on and off all motors in on
 // INDIVIDUAL_A_B_C_D - for 1x4 individual motors.
 // PARALEL_AC_BD      - for 2x2 motors with A C outputs and B D outputs being paralel.
 // DSHOT              - if brushless motors ar used for drive 
-uint8_t MOTOR_LAYOUT = PARALEL_AC_BD;       // selects motor layout betwheen 2 paralel, and 4 individual
-uint8_t MOTOR_DIRECTION = 1; // 0 - normal, 1 - reversed
+uint8_t MOTOR_LAYOUT = PWM;       // selects motor layout betwheen 2 paralel, and 4 individual
+uint8_t MOTOR_DIRECTION = 0; // 0 - normal, 1 - reversed
 float battery_critical_v = 3.0;
 #define cell_count 3.0;
 
@@ -40,6 +40,8 @@ esp_task_wdt_config_t twdt_config =
 // hardware pins
 #define SERVO_1_PIN 38
 #define SERVO_2_PIN 37
+#define PWM_DRIVE_2_PIN 36
+#define PWM_DRIVE_1_PIN 35
 #define BUTTON 4
 
 // rev 2.0

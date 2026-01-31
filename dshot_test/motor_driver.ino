@@ -451,6 +451,8 @@ void init_DSHOT(){
 void init_motors(){
   if(MOTOR_LAYOUT == DSHOT){
     init_DSHOT();
+  }if(MOTOR_LAYOUT == DSHOT){
+    ;
   }else{
     init_drv8908(MOTOR_LAYOUT);
   }
@@ -484,6 +486,12 @@ void drive_motors_forward_backward(){
     else if(motorB_output < 0){
       motor02.sendThrottle( map( constrain( -motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
     }
+  }else if(MOTOR_LAYOUT = PWM){
+    pwm_drive_1.write(map(constrain( motorA_output ,-2048 ,2048 ),-2048,2048,0,180));
+    pwm_drive_2.write(map(constrain( motorB_output ,-2048 ,2048 ),-2048,2048,0,180));
+    // Serial.print(motorA_output);
+    // Serial.print("\t");
+    // Serial.println(map(constrain(  motorA_output ,-2048 ,2048 ),-2048,2048,0,180));
   }else{  // driving with drv8908
     if(motorA_output == 0){
       drive_motor_A(COAST, 0);
@@ -591,7 +599,7 @@ void driving_logic(){
   }else if(read_register_drv8908(OCP_STAT_1) != 0 || read_register_drv8908(OCP_STAT_2) != 0){
     write_register_drv8908(CONFIG_CTRL, 0b00000001); // clear faults
     led_color(255,255,0);
-    delay(1);
+    // delay(1);
   }
 
   // disarmed
