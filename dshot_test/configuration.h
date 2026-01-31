@@ -5,9 +5,10 @@ bool motors_on = true;                      // turns on and off all motors in on
 // INDIVIDUAL_A_B_C_D - for 1x4 individual motors.
 // PARALEL_AC_BD      - for 2x2 motors with A C outputs and B D outputs being paralel.
 // DSHOT              - if brushless motors ar used for drive 
-uint8_t MOTOR_LAYOUT = DSHOT;       // selects motor layout betwheen 2 paralel, and 4 individual
+uint8_t MOTOR_LAYOUT = PARALEL_AC_BD;       // selects motor layout betwheen 2 paralel, and 4 individual
+uint8_t MOTOR_DIRECTION = 1; // 0 - normal, 1 - reversed
 float battery_critical_v = 3.0;
-#define cell_count 2.0;
+#define cell_count 3.0;
 
 // servo
 int servo_1_init_position = 0;              // initial servo position
@@ -24,7 +25,7 @@ const char* password = "12345678";
 
 // imu settings
 bool use_imu_for_yaw_rate = true;           // if true, yaw rate will be adjusted from imu yaw rate
-#define max_yaw_rate 600                    // max yaw rate in degrees per second
+#define max_yaw_rate 400                    // max yaw rate in degrees per second
 
 // failsave
 unsigned int failsave_delay = 500;          // ms until failsave is activated.

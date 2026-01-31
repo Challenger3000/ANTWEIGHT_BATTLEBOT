@@ -1,6 +1,7 @@
 // general variables start
 uint8_t wireles_mode = 0; // 0 - esp_now signal receiver. 1 - wifi web server
-double Kp=0.7, Ki=0, Kd=0.005;
+double Kp=1.7, Ki=0, Kd=0.015; // og
+// double Kp=9.0, Ki=0, Kd=0.01; // new shred
 
 bool new_rx_data = false;
 #define GIMBAL_STICK_DEADZONE 50

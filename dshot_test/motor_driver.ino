@@ -457,26 +457,32 @@ void init_motors(){
 }
 
 void drive_motors_forward_backward(){
-  
+
+  if(MOTOR_DIRECTION == 1){
+    int temp = motorA_output;
+    motorA_output = motorB_output;
+    motorB_output = temp;
+  }
+
   if(MOTOR_LAYOUT == DSHOT){ // driving with DSHOT
     if(motorA_output == 0){
       motor01.sendThrottle(DSHOT_CMD_MIN);
       // Serial.println(DSHOT_MIN_THROTTLE);
     }else if(motorA_output > 0){
-      motor01.sendThrottle( map( constrain( motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
-      Serial.println( map( constrain( motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
+      motor01.sendThrottle( map( constrain( motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
+      // Serial.println( map( constrain( motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
     }
     else if(motorA_output < 0){
-      motor01.sendThrottle( map( constrain( -motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
-      Serial.println( map( constrain( -motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
+      motor01.sendThrottle( map( constrain( -motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
+      // Serial.println( map( constrain( -motorA_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
     }
     if(motorB_output == 0){
       motor02.sendThrottle(DSHOT_CMD_MIN);
     }else if(motorB_output > 0){
-      motor02.sendThrottle( map( constrain( motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
+      motor02.sendThrottle( map( constrain( motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
     }
     else if(motorB_output < 0){
-      motor02.sendThrottle( map( constrain( -motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MIN_THROTTLE ,DSHOT_MID_THROTTLE ) );
+      motor02.sendThrottle( map( constrain( -motorB_output ,0 ,2048 ) ,0 ,2048 ,DSHOT_MID_THROTTLE ,DSHOT_MAX_THROTTLE ) );
     }
   }else{  // driving with drv8908
     if(motorA_output == 0){
