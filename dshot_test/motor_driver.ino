@@ -610,6 +610,8 @@ void driving_logic(){
     servo_2.write(servo_2_failsave_position);
     servo_1_was_0_before_arming = false;
     servo_2_was_0_before_arming = false;
+    pwm_drive_1.write(90);
+    pwm_drive_2.write(90);    
   }
 
   // Serial.print(rxData.y_axis);
